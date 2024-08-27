@@ -16,6 +16,15 @@ export default function ThreadQwerty() {
   };
 
   return (
-    
+    <div>
+      <h1>Thread Qwerty</h1>
+      <form onSubmit={handleSubmit}>
+        <label>
+          Message:
+          <input type="text" value={message} onChange={handleMessageChange} />
+        </label>
+        <button type="submit">Submit</button>
+      </form>
+    </div>
   );
 }

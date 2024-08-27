@@ -4,15 +4,29 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useLoaderData,
 } from "@remix-run/react";
-import "./tailwind.css";
+import styles from "./tailwind.css?url";
 import "react-toastify/dist/ReactToastify.min.css";
 import { library } from "@fortawesome/fontawesome-svg-core";
-import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
+import {
+  faEye,
+  faEyeSlash,
+  faFileAudio,
+  faFileImage,
+  faFileLines,
+  faFilePdf,
+  faFileText,
+  faFileVideo,
+} from "@fortawesome/free-solid-svg-icons";
 import { ToastContainer } from "react-toastify";
 import { jwtDecode } from "jwt-decode";
 import { useEffect } from "react";
 import { useNavigate } from "@remix-run/react";
+import { LinksFunction, LoaderFunction } from "@remix-run/node";
+import Navbar from "~/components/ui/navbar";
+
+export const links: LinksFunction = () => [{ rel: "stylesheet", href: styles }];
 
 const isTokenExpired = (token: string) => {
   if (!token) return true;
@@ -26,10 +40,27 @@ const isTokenExpired = (token: string) => {
   }
 };
 
-library.add(faEye, faEyeSlash);
+library.add(
+  faEye,
+  faEyeSlash,
+  faFilePdf,
+  faFileImage,
+  faFileAudio,
+  faFileText,
+  faFileVideo,
+  faFileLines
+);
+
+export const loader: LoaderFunction = async ({ request, response }) => {
+  const url = request.url.split("?")[0];
+  const pathname = url.split("/")[3];
+  console.log(pathname);
+  return pathname;
+};
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
+  const data = useLoaderData<string>();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -49,6 +80,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
+        <Navbar />
         <ToastContainer />
         {children}
         <ScrollRestoration />
