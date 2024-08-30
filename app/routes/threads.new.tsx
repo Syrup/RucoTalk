@@ -1,20 +1,12 @@
 import React, { useRef, useState } from "react";
-// import { Textarea, Button, Input } from 'your-ui-library'; // Replace 'your-ui-library' with the actual UI library you are using
+import { getFileTypeIcon } from "~/lib/getFIleTypeIcon";
 import { Textarea } from "~/components/ui/textarea";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { X } from "lucide-react";
-import {
-  faFileAudio,
-  faFileLines,
-  faFilePdf,
-  faFileText,
-  faFileVideo,
-} from "@fortawesome/free-solid-svg-icons";
 import { Badge } from "~/components/ui/badge";
-import { FontAwesomeIcon as Icon } from "@fortawesome/react-fontawesome";
+import { ActionFunction } from "@remix-run/node";
 import {
-  ActionFunction,
   unstable_createFileUploadHandler,
   unstable_parseMultipartFormData,
 } from "@remix-run/node";
@@ -40,56 +32,92 @@ const ThreadsNew = () => {
   const [content, setContent] = useState("");
   const [file, setFile] = useState<File[]>([]);
   const [images, setImages] = useState<File[]>([]);
-  const fileInputRef = useRef(null);
-  const imageInputRef = useRef(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
-
-  const handleTitleChange = (e) => {
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTitle(e.target.value);
   };
 
-  const handleContentChange = (e) => {
+  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setContent(e.target.value);
   };
 
-  const handleFileChange = (e) => {
-    const newFiles = Array.from(e.target.files);
-    setFile((prevFiles) => [...prevFiles, ...newFiles] as File[]);
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newFiles = Array.from(fileInputRef.current?.files as FileList);
+    setFile((prevFiles) => {
+      const updatedFiles =
+        prevFiles.length === 0 ? [...newFiles] : [...prevFiles, ...newFiles];
 
-    const dataTransfer
+      const dataTransfer = new DataTransfer();
+      updatedFiles.forEach((file) => {
+        dataTransfer.items.add(file);
+      });
+
+      console.log(dataTransfer.files, updatedFiles);
+
+      // Update the file input's files property
+      const fileInput = e.target;
+      fileInput.files = dataTransfer.files;
+
+      return updatedFiles;
+    });
   };
 
-  const handleImageChange = (e: HTMLInputElement) => {
-    const newImages = Array.from(e.target.files);
-    setImages((prevImages) => [...prevImages, ...newImages] as File[]);
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log(e.target.files);
+    const newImages = Array.from(e.target.files as FileList);
+
+    setImages((prevImages) => {
+      const updatedImages =
+        prevImages.length === 0
+          ? [...newImages]
+          : [...prevImages, ...newImages];
+
+      return updatedImages;
+    });
   };
 
-  const handleDeleteFile = (index) => {
+  const handleDeleteFile = (index: number) => {
     const updatedFiles = file.filter((_, i) => i !== index);
     setFile(updatedFiles);
-  };
 
-  const handleDeleteImage = (index) => {
-    const updatedImages = images.filter((_, i) => i !== index);
-    setImages(updatedImages);
-  };
-
-  const getFileTypeIcon = (fileName) => {
-    const extension = fileName.split(".").pop().toLowerCase();
-    switch (extension) {
-      case "pdf":
-        return <Icon icon={faFilePdf}></Icon>; // PDF icon
-      case "doc":
-      case "docx":
-        return <Icon icon={faFileText}></Icon>; // Word document icon
-      case "mp4":
-        return <Icon icon={faFileVideo}></Icon>; // Video icon
-      case "mp3":
-        return <Icon icon={faFileAudio}></Icon>; // Audio icon
-      default:
-        return <Icon icon={faFileLines}></Icon>; // Default file icon
+    // Update the file input's files property
+    const fileInput = fileInputRef.current;
+    if (fileInput) {
+      const dataTransfer = new DataTransfer();
+      updatedFiles.forEach((file) => {
+        dataTransfer.items.add(file);
+      });
+      fileInput.files = dataTransfer.files;
     }
   };
+
+  const handleDeleteImage = (index: number, imageUrl: string) => {
+    URL.revokeObjectURL(imageUrl);
+
+    const updatedImages = images.filter((_, i) => i !== index);
+    setImages(updatedImages);
+
+    // Update the image input's files property
+    const imageInput = imageInputRef.current;
+    if (imageInput) {
+      const dataTransfer = new DataTransfer();
+      updatedImages.forEach((file) => {
+        dataTransfer.items.add(file);
+      });
+      imageInput.files = dataTransfer.files;
+    }
+  };
+
+  // Cleanup function to revoke object URLs
+  React.useEffect(() => {
+    return () => {
+      images.forEach((image) => {
+        URL.revokeObjectURL(URL.createObjectURL(image));
+      });
+    };
+  }, [images]);
 
   return (
     <div className="flex items-center justify-center max-h-screen mt-5">
@@ -180,6 +208,7 @@ const ThreadsNew = () => {
               onChange={handleImageChange}
               className="hidden hover:bg-transparent"
               id="uplimg"
+              ref={imageInputRef}
               name="image"
               multiple
             />
@@ -192,21 +221,20 @@ const ThreadsNew = () => {
             </Badge>
           )}
           <div className="mt-4">
-            {images.map((image, index) => (
-              <div key={index} className="relative w-full mt-3">
-                <img
-                  src={URL.createObjectURL(image as Blob)}
-                  alt=""
-                  className="w-full"
-                />
-                <button
-                  onClick={() => handleDeleteImage(index)}
-                  className="absolute top-0 right-0 text-muted hover:bg-muted/50 animate-in animate-out rounded-full p-1 m-1"
-                >
-                  <X />
-                </button>
-              </div>
-            ))}
+            {images.map((image, index) => {
+              const imageUrl = URL.createObjectURL(image as Blob);
+              return (
+                <div key={index} className="relative w-full mt-3">
+                  <img src={imageUrl} alt="" className="w-full" />
+                  <button
+                    onClick={() => handleDeleteImage(index, imageUrl)}
+                    className="absolute top-0 right-0 text-muted hover:bg-muted/50 animate-in animate-out rounded-full p-1 m-1"
+                  >
+                    <X />
+                  </button>
+                </div>
+              );
+            })}
           </div>
           <Button className="mt-4" type="submit">
             Submit
