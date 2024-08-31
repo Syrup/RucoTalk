@@ -5,12 +5,14 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { X } from "lucide-react";
 import { Badge } from "~/components/ui/badge";
-import { ActionFunction ,
+import {
+  ActionFunction,
   unstable_createFileUploadHandler,
   unstable_parseMultipartFormData,
 } from "@remix-run/node";
 
 import { Form } from "@remix-run/react";
+import FancyArea from "~/components/fancy-area";
 
 export const action: ActionFunction = async ({ request }) => {
   const fileUploadHandler = await unstable_createFileUploadHandler({
@@ -138,13 +140,10 @@ const ThreadsNew = () => {
             className="mt-4"
             name="title"
           />
-          <Textarea
-            placeholder="Content"
-            value={content}
-            onChange={handleContentChange}
-            className="mt-4 mb-4"
-            name="content"
-          />
+          <FancyArea
+            textAreaName="content"
+            textAreaPlaceholder="Curahkan isi hatimu..."
+          ></FancyArea>
           <label htmlFor="uplfile" className="mt-4 cursor-pointer w-fit mr-5">
             <Button
               className="border border-muted text-white rounded-sm"
