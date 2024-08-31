@@ -1,4 +1,4 @@
-import { createCookie } from "@remix-run/node"; // or cloudflare/deno
+import { createCookie } from "@remix-run/node";
 
 const oneweek = 60 * 60 * 24 * 7; // 1 week
 
@@ -11,7 +11,7 @@ const sesionExpires = new Date();
 sesionExpires.setSeconds(sesionExpires.getSeconds() + oneweek);
 
 export const sessionCookie = createCookie("__session", {
-  secrets: ["s3cr3t0f7h3un1v3rs3"],
+  secrets: [process.env.LOGIN_SECRET!], // haha i changed it lol
   sameSite: true,
   expires: sesionExpires,
 });
