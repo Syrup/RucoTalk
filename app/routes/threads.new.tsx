@@ -1,15 +1,15 @@
 import React, { useRef, useState } from "react";
-import { getFileTypeIcon } from "~/lib/getFIleTypeIcon";
+import { getFileTypeIcon } from "~/lib/getFIleTypeIcon.tsx";
 import { Textarea } from "~/components/ui/textarea";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { X } from "lucide-react";
 import { Badge } from "~/components/ui/badge";
-import { ActionFunction } from "@remix-run/node";
-import {
+import { ActionFunction ,
   unstable_createFileUploadHandler,
   unstable_parseMultipartFormData,
 } from "@remix-run/node";
+
 import { Form } from "@remix-run/react";
 
 export const action: ActionFunction = async ({ request }) => {
