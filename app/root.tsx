@@ -5,7 +5,7 @@ import {
   Scripts,
   ScrollRestoration,
   useLoaderData,
-} from "@remix-run/react";
+ useNavigate } from "@remix-run/react";
 import styles from "./tailwind.css?url";
 import "react-toastify/dist/ReactToastify.min.css";
 import { library } from "@fortawesome/fontawesome-svg-core";
@@ -22,7 +22,6 @@ import {
 import { ToastContainer } from "react-toastify";
 import { jwtDecode } from "jwt-decode";
 import { useEffect } from "react";
-import { useNavigate } from "@remix-run/react";
 import { LinksFunction, LoaderFunction } from "@remix-run/node";
 import Navbar from "~/components/ui/navbar";
 

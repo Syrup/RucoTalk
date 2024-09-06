@@ -1,7 +1,7 @@
 import { json, type ActionFunctionArgs } from "@remix-run/node"; // or cloudflare/deno
 import { jwtDecode } from "jwt-decode";
-import { login as loginCookie } from "~/cookies.server";
-import { getSession, commitSession } from "~/sessions.server";
+import { login as loginCookie } from "~/.server/cookies";
+import { getSession, commitSession } from "~/.server/sessions";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   switch (request.method) {
@@ -43,7 +43,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         cookie.expired = jwtDecode(jsonData.token).exp;
         session.set("token", jsonData.token);
 
-        let userData = await fetch(`${url}/auth/me`, {
+        const userData = await fetch(`${url}/auth/me`, {
           method: "GET",
           headers: {
             Authorization: `Bearer ${jsonData.token}`,
@@ -51,7 +51,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           },
         });
 
-        let user = await userData.json();
+        const user = await userData.json();
 
         cookie.user = user;
         // cookie.token = jsonData.token;

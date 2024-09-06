@@ -10,12 +10,16 @@
     "start": "remix-serve ./build/server/index.js",
     "typecheck": "tsc"
   },
+  "resolutions": {
+    "string-width": "4.2.3"
+  },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^6.6.0",
     "@fortawesome/free-regular-svg-icons": "^6.6.0",
     "@fortawesome/free-solid-svg-icons": "^6.6.0",
     "@fortawesome/react-fontawesome": "^0.2.2",
     "@keyv/postgres": "^1.4.11",
+    "@neondatabase/serverless": "^0.9.5",
     "@radix-ui/react-avatar": "^1.1.0",
     "@radix-ui/react-dialog": "^1.1.1",
     "@radix-ui/react-dropdown-menu": "^2.1.1",
@@ -25,8 +29,10 @@
     "@remix-run/node": "^2.10.3",
     "@remix-run/react": "^2.10.3",
     "@remix-run/serve": "^2.10.3",
+    "bcrypt": "^5.1.1",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "drizzle-orm": "^0.33.0",
     "isbot": "^4.1.0",
     "jwt-decode": "^4.0.0",
     "keyv": "^4.5.4",
@@ -41,11 +47,14 @@
   "devDependencies": {
     "@remix-run/dev": "^2.10.3",
     "@tailwindcss/forms": "^0.5.7",
+    "@types/bcrypt": "^5.0.2",
     "@types/react": "^18.2.20",
     "@types/react-dom": "^18.2.7",
+    "@types/ws": "^8.5.12",
     "@typescript-eslint/eslint-plugin": "^6.7.4",
     "@typescript-eslint/parser": "^6.7.4",
     "autoprefixer": "^10.4.19",
+    "drizzle-kit": "^0.24.2",
     "eslint": "^8.38.0",
     "eslint-import-resolver-typescript": "^3.6.1",
     "eslint-plugin-import": "^2.28.1",

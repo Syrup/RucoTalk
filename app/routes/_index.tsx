@@ -7,9 +7,9 @@ import {
 } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import { jwtDecode } from "jwt-decode";
-import { login } from "~/cookies.server";
+import { login } from "~/.server/cookies";
 import type { User } from "types";
-import { getSession } from "~/sessions.server";
+import { getSession } from "~/.server/sessions";
 import { Button } from "~/components/ui/button";
 
 const isTokenExpired = (token: string) => {

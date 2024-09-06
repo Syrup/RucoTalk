@@ -119,7 +119,7 @@ export default function FancyArea(props: FancyAreaProps) {
             value="write"
             className="text-white data-[state=active]:bg-gray-700 data-[state=active]:text-white"
           >
-            Write
+            Tulis
           </TabsTrigger>
           <TabsTrigger
             value="preview"
@@ -190,7 +190,7 @@ export default function FancyArea(props: FancyAreaProps) {
             id={props.textAreaId}
             readOnly={props.textAreaReadOnly}
           />
-          <p className="text-sm text-gray-400">
+          <p className="hidden lg:block text-sm text-gray-400">
             Keyboard shortcuts: Ctrl+B (bold), Ctrl+I (italic), Ctrl+L (link),
             Ctrl+, (code), Ctrl+Z (undo), Ctrl+Y (redo)
           </p>
@@ -198,7 +198,24 @@ export default function FancyArea(props: FancyAreaProps) {
         <TabsContent value="preview" className="p-4 bg-gray-800 rounded-sm">
           <div className="prose prose-invert max-w-none">
             {text ? (
-              <ReactMarkdown>{text}</ReactMarkdown>
+              <ReactMarkdown
+                components={{
+                  a: ({ node, ...props }) => (
+                    <a
+                      {...props}
+                      href={
+                        props.href?.startsWith("http://") ||
+                        props.href?.startsWith("https://")
+                          ? props.href
+                          : `https://${props.href}`
+                      }
+                      className="text-primary underline visited:text-purple-800"
+                    />
+                  ),
+                }}
+              >
+                {text}
+              </ReactMarkdown>
             ) : (
               <p className="text-gray-400">
                 Tidak ada yang bisa dilihat disini &gt;_&lt;

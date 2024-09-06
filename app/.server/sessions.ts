@@ -2,7 +2,7 @@ import { KeyvPostgresOptions } from "@keyv/postgres/dist/types";
 import crypto from "crypto";
 import { Cookie, createCookie, createSessionStorage } from "@remix-run/node"; // or cloudflare/deno
 import Keyv from "keyv";
-import { sessionCookie } from "./cookies.server";
+import { sessionCookie } from "./cookies";
 
 function createDatabaseSessionStorage({ cookie }: { cookie: Cookie }) {
   // Configure your database client...
