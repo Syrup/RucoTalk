@@ -8,7 +8,7 @@ import {
 import { useLoaderData } from "@remix-run/react";
 import { jwtDecode } from "jwt-decode";
 import { login } from "~/.server/cookies";
-import type { User } from "types";
+import type { User } from "~/types";
 import { getSession } from "~/.server/sessions";
 import { Button } from "~/components/ui/button";
 

@@ -1,64 +1,26 @@
-import { neon, neonConfig } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
-import ws from "ws";
-import { users } from "db";
-import bcrypt from "bcrypt";
-import { eq } from "drizzle-orm";
+import jwt from "jsonwebtoken";
+import { User } from "~/types";
+import * as crypto from "crypto";
 
-const saltRounds = parseInt(process.env.SALT_ROUNDS!);
+export const generateAccessToken = (user: User) => {
+  return jwt.sign({ userId: user.id }, process.env.SESSION_SECRET!, {
+    expiresIn: "10m",
+  });
+};
 
-const sql = neon(process.env.DATABASE_URL!);
+export const generateRefreshToken = (user: User, jti: string) => {
+  return jwt.sign({ userId: user.id, jti }, process.env.REFRESH_SECRET!, {
+    expiresIn: "7d",
+  });
+};
 
-neonConfig.webSocketConstructor = ws;
+export const generateTokens = (user: User, jti: string) => {
+  return {
+    accessToken: generateAccessToken(user),
+    refreshToken: generateRefreshToken(user, jti),
+  };
+};
 
-export const db = drizzle(sql);
-
-export async function createUser({
-  username,
-  email,
-  password,
-}: {
-  username: string;
-  email: string;
-  password: string;
-}) {
-  const salt = await bcrypt.genSalt(saltRounds);
-  const hashPassword = await bcrypt.hash(password, salt);
-
-  return await db
-    .insert(users)
-    .values({ username, email, password: hashPassword });
-}
-
-export async function verifyPassword({
-  username,
-  password,
-}: {
-  username: string;
-  password: string;
-}) {
-  const user = (
-    await db
-      .select({ username: users.username, password: users.password })
-      .from(users)
-      .where(eq(users.username, username))
-  ).at(0);
-  if (!user) return false;
-  return bcrypt.compare(password, user.password);
-}
-
-export async function getUser({
-  username,
-  email,
-}: {
-  username?: string;
-  email?: string;
-}) {
-  if (email) {
-    return await db.select().from(users).where(eq(users.email, email));
-  } else if (username) {
-    return await db.select().from(users).where(eq(users.username, username));
-  } else {
-    return null;
-  }
-}
+export const hashToken = (token: string) => {
+  return crypto.createHash("sha512").update(token).digest("hex");
+};

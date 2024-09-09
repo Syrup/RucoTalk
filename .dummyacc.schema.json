@@ -1,0 +1,31 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "accounts": {
+      "type": "array",
+      "description": "List of dummy accounts",
+      "items": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "Username of the account"
+          },
+          "email": {
+            "type": "string",
+            "description": "Email of the account",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "description": "Password of the account",
+            "minLength": 8
+          }
+        },
+        "required": ["username", "email", "password"]
+      }
+    }
+  },
+  "required": ["accounts"]
+}

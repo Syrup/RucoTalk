@@ -5,7 +5,7 @@ import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import { Bold, Italic, Link, Code, Undo, Redo } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-import { FancyAreaProps } from "types";
+import { FancyAreaProps } from "~/types";
 
 export default function FancyArea(props: FancyAreaProps) {
   const [text, setText] = useState("");
