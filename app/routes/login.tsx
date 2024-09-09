@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 import { Id, toast } from "react-toastify";
-import { LoginCookie } from "types";
+import { LoginCookie } from "~/types";
 
 export const meta: MetaFunction = () => {
   return [

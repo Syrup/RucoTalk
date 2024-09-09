@@ -1,9 +1,10 @@
 import { ActionFunctionArgs, json } from "@remix-run/node";
-import { createUser, getUser } from "~/.server/utils";
+import { DB } from "~/.server/db";
 
 export async function action({ request }: ActionFunctionArgs) {
   switch (request.method) {
     case "POST": {
+      const { createUser, getUser } = new DB();
       const { username, email, password } = (await request.json()) as {
         username: string;
         email: string;
@@ -13,7 +14,7 @@ export async function action({ request }: ActionFunctionArgs) {
       try {
         const checkUser = await getUser({ email: email });
 
-        if (checkUser && checkUser.length > 0) {
+        if (checkUser?.email === email) {
           throw new Error("Email is already in use. Please use another email.");
         }
 

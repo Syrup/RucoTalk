@@ -3,38 +3,45 @@ import crypto from "crypto";
 import { Cookie, createCookie, createSessionStorage } from "@remix-run/node"; // or cloudflare/deno
 import Keyv from "keyv";
 import { sessionCookie } from "./cookies";
+import { client } from "./redis";
+import { createClient } from "redis";
 
-function createDatabaseSessionStorage({ cookie }: { cookie: Cookie }) {
-  // Configure your database client...
-  const db = new Keyv<KeyvPostgresOptions>({
-    adapter: "postgres",
-    uri: process.env.DATABASE_URL,
+async function createDatabaseSessionStorage({ cookie }: { cookie: Cookie }) {
+  const client = createClient({
+    url: process.env.REDIS_DB_REDIS_URL,
   });
+
+  client.on("error", (err) => console.log("Redis Client Error", err));
+
+  await client.connect();
 
   return createSessionStorage({
     cookie,
     async createData(data, expires) {
-      // `expires` is a Date after which the data should be considered
-      // invalid. You could use it to invalidate the data somehow or
-      // automatically purge this record from your database.
       const randomBytes = crypto.randomBytes(8);
       const id = randomBytes.toString("hex");
-      await db.set(id, data, expires?.getTime());
+      await client.hSet(`session:${id}`, data);
+      if (expires) {
+        await client.expireAt(`session:${id}`, expires.getTime());
+      }
       return id;
     },
     async readData(id) {
-      return (await db.get(id)) || null;
+      return (await client.hGetAll(`session:${id}`)) ?? null;
     },
     async updateData(id, data, expires) {
-      await db.set(id, data, expires?.getTime());
+      await client.hSet(`session:${id}`, data);
+      if (expires) {
+        await client.expireAt(`session:${id}`, expires.getTime());
+      }
     },
     async deleteData(id) {
-      await db.delete(id);
+      await client.del(`session:${id}`);
     },
   });
 }
 
 export const { getSession, commitSession, destroySession } =
-  createDatabaseSessionStorage({
+  await createDatabaseSessionStorage({
     cookie: sessionCookie,
   });
