@@ -182,7 +182,14 @@ export default function FancyArea(props: FancyAreaProps) {
           <Textarea
             ref={textareaRef}
             value={text}
-            onChange={handleTextChange}
+            onChange={(e) => {
+              if(props.textAreaOnChange) {
+                handleTextChange(e);
+                props.textAreaOnChange(e);
+              } else {
+                handleTextChange(e);
+              }
+            }}
             onKeyDown={handleKeyDown}
             placeholder="Build by @mxkaske, _powered by_ @shadcn **ui**. Supports raw <code>html</code>."
             className={`min-h-[200px] bg-gray-800 text-white border-gray-700 placeholder-gray-500 w-full ${props.textAreaClassName}`}

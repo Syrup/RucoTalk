@@ -2,7 +2,9 @@ import { json, type ActionFunctionArgs } from "@remix-run/node"; // or cloudflar
 import { jwtDecode } from "jwt-decode";
 import { DB } from "~/.server/db";
 import { login as loginCookie } from "~/.server/cookies";
+import { v4 as uuidv4 } from "uuid";
 import { getSession, commitSession } from "~/.server/sessions";
+import { generateTokens } from "~/.server/utils";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   switch (request.method) {
@@ -15,7 +17,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       const headers = new Headers();
       const data = await request.json();
       const { login, password } = data;
-      const url = process.env.FORU_MS_URL;
+      // const url = process.env.FORU_MS_URL;
       const db = new DB();
 
       try {
@@ -49,6 +51,37 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         }
 
         cookie.isLoggedIn = true;
+        const { accessToken, refreshToken } = generateTokens(user, uuidv4());
+
+        session.set("token", accessToken);
+
+        cookie.user = user;
+        cookie.expired = jwtDecode(accessToken).exp;
+
+        headers.append("Set-Cookie", await loginCookie.serialize(cookie));
+        headers.append(
+          "Set-Cookie",
+          await commitSession(session, {
+            expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // 7 days from now
+          })
+        );
+
+        // headers.append("Authorization", `Bearer ${accessToken}`);
+
+        return json(
+          {
+            status: "success",
+            code: 200,
+            message: "Login success",
+            data: user,
+            token: accessToken,
+            refreshToken,
+          },
+          {
+            status: 200,
+            headers,
+          }
+        );
       } catch (err) {
         console.error(err);
         return json(

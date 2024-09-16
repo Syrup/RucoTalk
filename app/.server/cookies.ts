@@ -13,5 +13,5 @@ sesionExpires.setSeconds(sesionExpires.getSeconds() + oneweek);
 export const sessionCookie = createCookie("__session", {
   secrets: [process.env.SESSION_SECRET!], // haha i changed it lol
   sameSite: true,
-  expires: sesionExpires,
+  // expires: sesionExpires,
 });

@@ -11,6 +11,8 @@ import { login } from "~/.server/cookies";
 import type { User } from "~/types";
 import { getSession } from "~/.server/sessions";
 import { Button } from "~/components/ui/button";
+import { mail } from "~/.server/utils";
+import { client } from "~/.server/redis";
 
 const isTokenExpired = (token: string) => {
   if (!token) return true;
@@ -36,6 +38,16 @@ export const loader: LoaderFunction = async ({ request }) => {
   const cookie = (await login.parse(cookieHeader)) ?? { isLoggedIn: false };
   const session = await getSession(cookieHeader);
 
+  // mail.sendMail({
+  //   from: '"PIK R" <pik.r@sxrup.xyz>',
+  //   to: "goodgamersz665@gmail.com",
+  //   subject: "Hello",
+  //   text: "Hello world?",
+  //   html: "<b>Hello world?</b>",
+  // });
+
+  // console.log(cookie);
+
   return json({
     isLoggedIn: !isTokenExpired(session.get("token")),
     user: cookie.user,
@@ -59,7 +71,11 @@ export const action: ActionFunction = async ({ request }) => {
 };
 
 function Logged() {
-  const user = useLoaderData<{ user: User }>().user;
+  const user = useLoaderData<{
+    user: User;
+    isLoggedIn: boolean;
+    expired: number;
+  }>().user;
 
   return (
     <div className="p-4 font-sans">

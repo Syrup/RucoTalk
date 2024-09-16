@@ -6,26 +6,154 @@ import { X } from "lucide-react";
 import { Badge } from "~/components/ui/badge";
 import {
   ActionFunction,
+  LoaderFunction,
+  LoaderFunctionArgs,
   unstable_createFileUploadHandler,
   unstable_parseMultipartFormData,
+  json,
+  SerializeFrom,
+  TypedResponse,
 } from "@remix-run/node";
+import fs from "fs";
 
-import { Form } from "@remix-run/react";
+import { Form, useLoaderData } from "@remix-run/react";
 import FancyArea from "~/components/fancy-area";
+import { DB } from "~/.server/db";
+import { login } from "~/.server/cookies";
+import { LoginCookie, User } from "~/types";
+import { getSession } from "~/.server/sessions";
+import { Attachment } from "~/types/Thread";
+import { v4 } from "uuid";
 
-export const action: ActionFunction = async ({ request }) => {
-  const fileUploadHandler = await unstable_createFileUploadHandler({
-    avoidFileConflicts: true,
-    directory: "./uploads",
-  });
-  const formData = await unstable_parseMultipartFormData(
-    request,
-    fileUploadHandler
-  );
+// export async function loader({ request }: LoaderFunctionArgs): Promise<
+//   TypedResponse<{
+//     user: User;
+//     token: string;
+//   }>
+// > {
+//   const cookieHeader = request.headers.get("Cookie");
+//   const cookie: LoginCookie = (await login.parse(cookieHeader)) ?? {
+//     isLoggedIn: false,
+//   };
+//   const session = await getSession(cookieHeader);
 
-  console.log(formData.getAll("image"));
+//   if (!cookie.isLoggedIn) {
+//     return new Response(null, {
+//       status: 401,
+//       headers: {
+//         "Content-Type": "text/html",
+//         Location: "/login",
+//       },
+//     });
+//   }
 
-  return null;
+//   return json({
+//     user: cookie.user,
+//     token: session.get("token"),
+//   });
+// }
+
+export const action: ActionFunction = async ({ request, context }) => {
+  const cookieHeader = request.headers.get("Cookie");
+  const cookie: LoginCookie = (await login.parse(cookieHeader)) ?? {
+    isLoggedIn: false,
+  };
+  const session = await getSession(cookieHeader);
+  const form = await request.formData();
+
+  console.log("Form", form);
+
+  // if (
+  //   request.headers.get("Authorization") !== `Bearer ${session.get("token")}`
+  // ) {
+  //   return new Response("Unauthorized", {
+  //     status: 401,
+  //   });
+  // }
+
+  console.log("here");
+
+  try {
+    // console.log("Request", request);
+    // const formData = await request.formData();
+
+    const filePromises = form.getAll("file").map(async (file) => {
+      if (file instanceof File) {
+        const buffer = await file.arrayBuffer();
+        const blob = new Blob([buffer], { type: file.type });
+        return { name: file.name, blob };
+      }
+      return null;
+    });
+
+    const imagePromises = form.getAll("image").map(async (file) => {
+      if (file instanceof File) {
+        const buffer = await file.arrayBuffer();
+        const blob = new Blob([buffer], { type: file.type });
+        return { name: file.name, blob };
+      }
+      return null;
+    });
+
+    const attachments: Attachment[] = [];
+    const filesWithBlobs = await Promise.all([
+      ...filePromises,
+      ...imagePromises,
+    ]);
+    console.log("Files with Blobs", filesWithBlobs);
+
+    await Promise.all(
+      filesWithBlobs.map(async (file) => {
+        const url = new URL(request.url);
+        const extension = /\.[0-9a-z]+$/i.exec(file?.name!)![0];
+        const name = v4() + extension;
+        console.log("Name", name);
+
+        if (file) {
+          fs.writeFileSync(
+            `./uploads/${name}`,
+            new Uint8Array(await file.blob.arrayBuffer())
+          );
+        }
+
+        attachments.push({
+          name,
+          url: `${url.origin}/files/${name}`,
+          type: file?.blob.type!,
+        });
+
+        console.log("Attachments 1", attachments);
+      })
+    );
+
+    console.log("Attachments", attachments);
+    console.log("Form", form);
+    // console.log("Form ", form);
+    console.log("Files", form.getAll("file"));
+
+    // console.log("Form", form.get("title"), form.get("content"));
+
+    const db = new DB();
+
+    await db.newThread({
+      author: cookie.user,
+      thread: {
+        title: form.get("title") as string,
+        content: form.get("content") as string,
+        attachments,
+      },
+    });
+
+    return new Response("Files uploaded", {
+      status: 200,
+    });
+  } catch (e) {
+    console.log(e);
+
+    return new Response("Failed to upload files", {
+      status: 500,
+    });
+  }
 };
 
 const ThreadsNew = () => {
@@ -35,6 +163,7 @@ const ThreadsNew = () => {
   const [images, setImages] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  // const { user, token } = useLoaderData<typeof loader>();
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTitle(e.target.value);
@@ -111,6 +240,32 @@ const ThreadsNew = () => {
     }
   };
 
+  const submitHandler = async (e: React.FormEvent<HTMLFormElement>) => {
+    // e.preventDefault();
+    // const formData = new FormData();
+    // formData.append("title", title);
+    // formData.append("content", content);
+    // file.forEach((file) => {
+    //   formData.append("file", file);
+    // });
+    // images.forEach((image) => {
+    //   formData.append("image", image);
+    // });
+    // const res = await fetch("/threads/new", {
+    //   method: "POST",
+    //   headers: {
+    //     Authorization: `Bearer ${token}`,
+    //     // "Content-Type": "multipart/form-data",
+    //   },
+    //   body: formData,
+    // });
+    // if (res.ok) {
+    //   console.log("Thread created");
+    // } else {
+    //   console.log("Failed to create thread");
+    // }
+  };
+
   // Cleanup function to revoke object URLs
   React.useEffect(() => {
     return () => {
@@ -124,6 +279,7 @@ const ThreadsNew = () => {
     <div className="flex items-center justify-center max-h-screen mt-5">
       <Form
         method="POST"
+        action="/threads/new"
         className="w-full max-w-md md:mr-4 overflow-y-auto max-h-[80vh]"
         encType="multipart/form-data"
       >
@@ -142,6 +298,7 @@ const ThreadsNew = () => {
           <FancyArea
             textAreaName="content"
             textAreaPlaceholder="Curahkan isi hatimu..."
+            textAreaOnChange={handleContentChange}
           ></FancyArea>
           <label htmlFor="uplfile" className="mt-4 cursor-pointer w-fit mr-5">
             <Button

@@ -9,7 +9,8 @@ export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: varchar("email").unique(),
   password: varchar("password").notNull(),
-  username: varchar("username").default("Anonymous " + randomString(4)),
-  created_at: timestamp("createdAt").defaultNow(),
-  updated_at: timestamp("updatedAt").defaultNow(),
+  username: varchar("username").default("Anonymous"),
+  roles: varchar("roles").array().default(["user"]),
+  createdAt: timestamp("createdAt").defaultNow(),
+  updatedAt: timestamp("updatedAt").defaultNow(),
 });

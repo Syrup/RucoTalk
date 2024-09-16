@@ -7,14 +7,6 @@ import { client } from "./redis";
 import { createClient } from "redis";
 
 async function createDatabaseSessionStorage({ cookie }: { cookie: Cookie }) {
-  const client = createClient({
-    url: process.env.REDIS_DB_REDIS_URL,
-  });
-
-  client.on("error", (err) => console.log("Redis Client Error", err));
-
-  await client.connect();
-
   return createSessionStorage({
     cookie,
     async createData(data, expires) {
@@ -27,6 +19,7 @@ async function createDatabaseSessionStorage({ cookie }: { cookie: Cookie }) {
       return id;
     },
     async readData(id) {
+      console.log(await client.hGetAll(`session:${id}`), id);
       return (await client.hGetAll(`session:${id}`)) ?? null;
     },
     async updateData(id, data, expires) {

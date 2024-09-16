@@ -7,6 +7,9 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { PgInsertValue } from "drizzle-orm/pg-core";
 import { EventEmitter } from "node:events";
+import { User } from "~/types";
+import { Thread } from "~/types/Thread";
+import { threads } from "db/schema/threads";
 
 const userSchema = z.object({
   id: z.string().uuid(),
@@ -33,7 +36,8 @@ const saltRounds = parseInt(process.env.SALT_ROUNDS!);
 
 const sql = neon(process.env.DATABASE_URL!);
 
-neonConfig.webSocketConstructor = ws;
+// neonConfig.webSocketConstructor = ws;
+// neonConfig.fetchConnectionCache = true;
 
 class DB extends EventEmitter {
   public db: ReturnType<typeof drizzle>;
@@ -85,7 +89,7 @@ class DB extends EventEmitter {
         throw new DBError("User not found");
       }
 
-      return user[0];
+      return user[0] as User;
     } else if (username) {
       const user = await this.db
         .select()
@@ -96,7 +100,7 @@ class DB extends EventEmitter {
         throw new DBError("User not found");
       }
 
-      return user[0];
+      return user[0] as User;
     } else {
       return null;
     }
@@ -129,6 +133,40 @@ class DB extends EventEmitter {
     const user = await this.getUser({ username });
     if (!user) return false;
     return bcrypt.compare(password, user.password);
+  }
+
+  async newThread({
+    author,
+    thread,
+  }: {
+    author: User;
+    thread: Omit<Thread, "authorId" | "id">;
+  }) {
+    const user = await this.getUser({ username: author.username! });
+
+    console.log(thread.attachments);
+
+    if (!user) {
+      throw new DBError("User not found");
+    }
+
+    return await this.db.insert(threads).values({
+      ...thread,
+      authorId: user.id,
+    });
+  }
+
+  async getThread(id: string) {
+    const thread = await this.db
+      .select()
+      .from(threads)
+      .where(eq(threads.id, id));
+
+    if (thread.length === 0) {
+      throw new DBError("Thread not found");
+    }
+
+    return thread[0] as Thread;
   }
 }
 
