@@ -10,6 +10,7 @@ import { Menu, Package2, CircleUser } from "lucide-react";
 import { Link, useLocation } from "@remix-run/react";
 import { Button } from "./button";
 import { SheetTrigger, SheetContent, Sheet } from "./sheet";
+import { useEffect, useState } from "react";
 
 function NavLinks({
   active,
@@ -18,10 +19,15 @@ function NavLinks({
   active: string;
   device: "mobile" | "desktop";
 }) {
+  console.log(active);
+
   if (device === "mobile") {
     return (
       <nav className="grid gap-6 text-lg font-medium">
-        <Link to="#" className="flex items-center gap-2 text-lg font-semibold">
+        <Link
+          to="#"
+          className="flex items-center gap-2 text-lg font-semibold hover:no-underline"
+        >
           <Package2 className="w-6 h-6" />
           <span className="sr-only">Acme Inc</span>
         </Link>
@@ -29,25 +35,34 @@ function NavLinks({
           to="/"
           className={`${
             active === "" ? "text-foreground" : "text-muted-foreground"
-          } hover:text-foreground`}
+          } hover:text-foreground hover:no-underline`}
         >
           Home
         </Link>
         <Link
-          to="/dashboard"
+          to="dashboard"
           className={`${
             active === "dashboard" ? "text-foreground" : "text-muted-foreground"
-          } hover:text-foreground`}
+          } hover:text-foreground hover:no-underline`}
         >
           Dashboard
         </Link>
-        <Link to="#" className="text-muted-foreground hover:text-foreground">
+        <Link
+          to="#"
+          className="text-muted-foreground hover:text-foreground hover:no-underline"
+        >
           Products
         </Link>
-        <Link to="#" className="text-muted-foreground hover:text-foreground">
+        <Link
+          to="#"
+          className="text-muted-foreground hover:text-foreground hover:no-underline"
+        >
           Customers
         </Link>
-        <Link to="#" className="text-muted-foreground hover:text-foreground">
+        <Link
+          to="#"
+          className="text-muted-foreground hover:text-foreground hover:no-underline"
+        >
           Analytics
         </Link>
       </nav>
@@ -57,7 +72,7 @@ function NavLinks({
       <nav className="flex-col hidden gap-6 text-lg font-medium md:flex md:flex-row md:items-center md:gap-5 md:text-sm lg:gap-6">
         <Link
           to="#"
-          className="flex items-center gap-2 text-lg font-semibold md:text-base"
+          className="flex items-center gap-2 text-lg font-semibold md:text-base hover:no-underline"
         >
           <Package2 className="w-6 h-6" />
           <span className="sr-only">Acme Inc</span>
@@ -66,33 +81,33 @@ function NavLinks({
           to="/"
           className={`transition-colors ${
             active === "" ? "text-foreground" : "text-muted-foreground"
-          } hover:text-foreground`}
+          } hover:text-foreground hover:no-underline`}
         >
           Home
         </Link>
         <Link
-          to="/dashboard"
+          to="dashboard"
           className={`transition-colors ${
             active === "dashboard" ? "text-foreground" : "text-muted-foreground"
-          } hover:text-foreground`}
+          } hover:text-foreground hover:no-underline`}
         >
           Dashboard
         </Link>
         <Link
           to="#"
-          className="transition-colors text-muted-foreground hover:text-foreground"
+          className="transition-colors text-muted-foreground hover:text-foreground hover:no-underline"
         >
           Products
         </Link>
         <Link
           to="#"
-          className="transition-colors text-muted-foreground hover:text-foreground"
+          className="transition-colors text-muted-foreground hover:text-foreground hover:no-underline"
         >
           Customers
         </Link>
         <Link
           to="#"
-          className="transition-colors text-muted-foreground hover:text-foreground"
+          className="transition-colors text-muted-foreground hover:text-foreground hover:no-underline"
         >
           Analytics
         </Link>
@@ -104,6 +119,7 @@ function NavLinks({
 export default function Navbar() {
   const location = useLocation();
   const active = location.pathname.split("/")[1];
+
   console.log(active);
 
   return (

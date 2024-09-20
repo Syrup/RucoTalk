@@ -15,6 +15,7 @@ export const threads = pgTable("threads", {
   authorId: uuid("author_id")
     .notNull()
     .references(() => users.id),
+  status: varchar("status", { enum: ["open", "closed"] }).default("open"),
   attachments: jsonb("attachments").array().default([]),
   createdAt: timestamp("createdAt").defaultNow(),
   updatedAt: timestamp("updatedAt").defaultNow(),

@@ -25,34 +25,6 @@ import { getSession } from "~/.server/sessions";
 import { Attachment } from "~/types/Thread";
 import { v4 } from "uuid";
 
-// export async function loader({ request }: LoaderFunctionArgs): Promise<
-//   TypedResponse<{
-//     user: User;
-//     token: string;
-//   }>
-// > {
-//   const cookieHeader = request.headers.get("Cookie");
-//   const cookie: LoginCookie = (await login.parse(cookieHeader)) ?? {
-//     isLoggedIn: false,
-//   };
-//   const session = await getSession(cookieHeader);
-
-//   if (!cookie.isLoggedIn) {
-//     return new Response(null, {
-//       status: 401,
-//       headers: {
-//         "Content-Type": "text/html",
-//         Location: "/login",
-//       },
-//     });
-//   }
-
-//   return json({
-//     user: cookie.user,
-//     token: session.get("token"),
-//   });
-// }
-
 export const action: ActionFunction = async ({ request, context }) => {
   const cookieHeader = request.headers.get("Cookie");
   const cookie: LoginCookie = (await login.parse(cookieHeader)) ?? {
@@ -163,6 +135,8 @@ const ThreadsNew = () => {
   const [images, setImages] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  console.log(images, file);
+  console.log(fileInputRef, imageInputRef);
   // const { user, token } = useLoaderData<typeof loader>();
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -241,29 +215,29 @@ const ThreadsNew = () => {
   };
 
   const submitHandler = async (e: React.FormEvent<HTMLFormElement>) => {
-    // e.preventDefault();
-    // const formData = new FormData();
-    // formData.append("title", title);
-    // formData.append("content", content);
-    // file.forEach((file) => {
-    //   formData.append("file", file);
-    // });
-    // images.forEach((image) => {
-    //   formData.append("image", image);
-    // });
-    // const res = await fetch("/threads/new", {
-    //   method: "POST",
-    //   headers: {
-    //     Authorization: `Bearer ${token}`,
-    //     // "Content-Type": "multipart/form-data",
-    //   },
-    //   body: formData,
-    // });
-    // if (res.ok) {
-    //   console.log("Thread created");
-    // } else {
-    //   console.log("Failed to create thread");
-    // }
+    e.preventDefault();
+    const formData = new FormData();
+    formData.append("title", title);
+    formData.append("content", content);
+    file.forEach((file) => {
+      formData.append("file", file);
+    });
+    images.forEach((image) => {
+      formData.append("image", image);
+    });
+    const res = await fetch("/threads/new", {
+      method: "POST",
+      headers: {
+        // Authorization: `Bearer ${token}`,
+        // "Content-Type": "multipart/form-data",
+      },
+      body: formData,
+    });
+    if (res.ok) {
+      console.log("Thread created");
+    } else {
+      console.log("Failed to create thread");
+    }
   };
 
   // Cleanup function to revoke object URLs
@@ -282,6 +256,7 @@ const ThreadsNew = () => {
         action="/threads/new"
         className="w-full max-w-md md:mr-4 overflow-y-auto max-h-[80vh]"
         encType="multipart/form-data"
+        onSubmit={submitHandler}
       >
         <fieldset className="border border-muted p-3">
           <legend className="text-xl font-bold text-center">

@@ -4,6 +4,7 @@ export interface Thread {
   content: string;
   authorId: string;
   attachments: Attachment[];
+  status: "open" | "closed";
   createdAt?: Date;
   updatedAt?: Date;
 }

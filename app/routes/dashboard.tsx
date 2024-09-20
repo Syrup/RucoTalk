@@ -6,7 +6,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuItem,
 } from "~/components/ui/dropdown-menu";
-import { Link } from "@remix-run/react";
+import { Link, useLoaderData } from "@remix-run/react";
+import { json, TypedResponse } from "@remix-run/node";
 import {
   Activity,
   ArrowUpRight,
@@ -41,8 +42,42 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
+import { LoaderFunctionArgs } from "@remix-run/node";
+import { Thread } from "~/types/Thread";
+import { DB } from "~/.server/db";
+import { User } from "~/types";
+import { AlertDialogDemo } from "~/components/alert-dialog-json";
+import { threads } from "db/schema/threads";
+
+const db = new DB();
+
+type ThreadWithAuthor = Thread & { author: User };
+
+export async function loader({
+  request,
+}: LoaderFunctionArgs): Promise<TypedResponse<ThreadWithAuthor[]>> {
+  const url = new URL(request.url);
+  const threads = (await fetch(`${url.origin}/api/threads/list`, {
+    headers: {
+      Authorization: `Bearer ${process.env.REFRESH_SECRET}`,
+    },
+  }).then((res) => res.json())) as ThreadWithAuthor[];
+
+  await Promise.all(
+    threads.map(async (thread) => {
+      const user = await db.getUser({ id: thread.authorId });
+      thread.author = user!;
+
+      return thread;
+    })
+  );
+
+  return json(threads, 200);
+}
 
 export default function Dashboard() {
+  const data = useLoaderData<typeof loader>();
+
   return (
     <div className="flex flex-col w-full min-h-screen">
       <main className="flex flex-col flex-1 gap-4 p-4 md:gap-8 md:p-8">
@@ -62,7 +97,7 @@ export default function Dashboard() {
               <FilePen className="w-4 h-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold">0</p>
+              <p className="text-2xl font-bold">{data.length}</p>
             </CardContent>
           </Card>
         </div>
@@ -73,12 +108,17 @@ export default function Dashboard() {
                 <CardTitle>Threads</CardTitle>
                 <CardDescription>Semua Threads ada disini.</CardDescription>
               </div>
-              <Button asChild size="sm" className="gap-1 ml-auto">
-                <Link to="#">
-                  View All
-                  <ArrowUpRight className="w-4 h-4" />
-                </Link>
-              </Button>
+              {/* <AlertDialogDemo
+                className="gap-1 ml-auto"
+                buttonText="Lihat data dalam bentuk JSON"
+                lang="json"
+                dialogTitle="Data Threads"
+                dialogContent={JSON.stringify(data, null, 2)}
+                close={true}
+                closeText="Tutup"
+                children={<ArrowUpRight className="w-4 h-4" />}
+              /> */}
+              {/* <ArrowUpRight className="w-4 h-4" /> */}
             </CardHeader>
             <CardContent>
               <Table>
@@ -90,20 +130,41 @@ export default function Dashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  <TableRow>
-                    <TableCell>
-                      <Link to="/threads/1" className="hover:text-primary/45">
-                        Thread 1
-                      </Link>
-                      <span className="text-sm text-muted-foreground leading-6 block max-w-32 truncate">
-                        Author
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-center">10-08-2024</TableCell>
-                    <TableCell className="text-right">
-                      <Badge variant="success">Selesai</Badge>
-                    </TableCell>
-                  </TableRow>
+                  {data.map((thread) => {
+                    const date = new Date(thread.createdAt!);
+                    const fullDate = `${date
+                      .getDate()
+                      .toString()
+                      .padStart(2, "0")}-${(date.getMonth() + 1)
+                      .toString()
+                      .padStart(2, "0")}-${date.getFullYear()}`;
+
+                    return (
+                      <TableRow key={thread.id}>
+                        <TableCell>
+                          <Link
+                            to={`/threads/${thread.id}`}
+                            className="hover:text-primary/45"
+                          >
+                            {thread.title}
+                          </Link>
+                          <span className="text-sm text-muted-foreground leading-6 block max-w-32 truncate">
+                            {thread.author?.username}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {fullDate}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {thread.status === "open" ? (
+                            <Badge variant="success">Buka</Badge>
+                          ) : (
+                            <Badge variant="secondary">Tutup</Badge>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </CardContent>
@@ -115,7 +176,7 @@ export default function Dashboard() {
             <CardContent className="grid gap-8">
               <div className="flex items-center gap-4">
                 <Avatar className="hidden h-9 w-9 sm:flex">
-                  <AvatarImage src="/avatars/01.png" alt="Avatar" />
+                  <AvatarImage src="" alt="Avatar" />
                   <AvatarFallback>AD</AvatarFallback>
                 </Avatar>
                 <div className="grid gap-1">
@@ -130,7 +191,7 @@ export default function Dashboard() {
               </div>
               <div className="flex items-center gap-4">
                 <Avatar className="hidden h-9 w-9 sm:flex">
-                  <AvatarImage src="/avatars/01.png" alt="Avatar" />
+                  <AvatarImage src="" alt="Avatar" />
                   <AvatarFallback>AD</AvatarFallback>
                 </Avatar>
                 <div className="grid gap-1">

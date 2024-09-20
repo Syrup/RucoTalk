@@ -78,7 +78,15 @@ class DB extends EventEmitter {
     return await this.db.delete(table).where(eq(table.id, id));
   }
 
-  async getUser({ username, email }: { username?: string; email?: string }) {
+  async getUser({
+    username,
+    email,
+    id,
+  }: {
+    username?: string;
+    email?: string;
+    id?: string;
+  }) {
     if (email) {
       const user = await this.db
         .select()
@@ -95,6 +103,14 @@ class DB extends EventEmitter {
         .select()
         .from(users)
         .where(eq(users.username, username));
+
+      if (user.length === 0) {
+        throw new DBError("User not found");
+      }
+
+      return user[0] as User;
+    } else if (id) {
+      const user = await this.db.select().from(users).where(eq(users.id, id));
 
       if (user.length === 0) {
         throw new DBError("User not found");
@@ -140,7 +156,7 @@ class DB extends EventEmitter {
     thread,
   }: {
     author: User;
-    thread: Omit<Thread, "authorId" | "id">;
+    thread: Omit<Thread, "authorId" | "id" | "status">;
   }) {
     const user = await this.getUser({ username: author.username! });
 

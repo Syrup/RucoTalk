@@ -5,7 +5,8 @@ import {
   Scripts,
   ScrollRestoration,
   useLoaderData,
- useNavigate } from "@remix-run/react";
+  useNavigate,
+} from "@remix-run/react";
 import styles from "./tailwind.css?url";
 import "react-toastify/dist/ReactToastify.min.css";
 import { library } from "@fortawesome/fontawesome-svg-core";
@@ -50,7 +51,7 @@ library.add(
   faFileLines
 );
 
-export const loader: LoaderFunction = async ({ request, response }) => {
+export const loader: LoaderFunction = async ({ request }) => {
   const url = request.url.split("?")[0];
   const pathname = url.split("/")[3];
   console.log(pathname);
