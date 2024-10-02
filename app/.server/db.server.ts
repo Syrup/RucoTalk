@@ -1,8 +1,8 @@
-import { neon, neonConfig } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
+import { neon, neonConfig, Pool } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-serverless";
 import ws from "ws";
 import { tokens, users } from "db";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { PgInsertValue } from "drizzle-orm/pg-core";
@@ -32,20 +32,24 @@ const tablesSchema = z.union([userSchema, tokenSchema]);
 
 type Tables = typeof users | typeof tokens;
 
-const saltRounds = parseInt(process.env.SALT_ROUNDS!);
-
-const sql = neon(process.env.DATABASE_URL!);
+const saltRounds = 10;
 
 // neonConfig.webSocketConstructor = ws;
 // neonConfig.fetchConnectionCache = true;
 
 class DB extends EventEmitter {
   public db: ReturnType<typeof drizzle>;
+  public pool: Pool;
 
   constructor() {
     super();
+    // const sql = neon(process.env.DATABASE_URL!);
+    neonConfig.webSocketConstructor = ws;
+    this.pool = new Pool({
+      connectionString: process.env.DATABASE_URL!,
+    });
 
-    this.db = drizzle(sql);
+    this.db = drizzle(this.pool);
   }
 
   async insert<T extends Tables>(table: T, data: PgInsertValue<T>) {
@@ -148,6 +152,7 @@ class DB extends EventEmitter {
   }) {
     const user = await this.getUser({ username });
     if (!user) return false;
+    console.log(user);
     return bcrypt.compare(password, user.password);
   }
 
@@ -183,6 +188,11 @@ class DB extends EventEmitter {
     }
 
     return thread[0] as Thread;
+  }
+
+  async close() {
+    console.log("Closing db connection");
+    return this.pool.end();
   }
 }
 

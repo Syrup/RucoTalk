@@ -9,7 +9,7 @@ import { useLoaderData } from "@remix-run/react";
 import { jwtDecode } from "jwt-decode";
 import { login } from "~/.server/cookies";
 import type { User } from "~/types";
-import { getSession } from "~/.server/sessions";
+import { Session } from "~/.server/sessions";
 import { Button } from "~/components/ui/button";
 import { mail } from "~/.server/utils";
 import { client } from "~/.server/redis";
@@ -36,6 +36,7 @@ export const meta: MetaFunction = () => {
 export const loader: LoaderFunction = async ({ request }) => {
   const cookieHeader = request.headers.get("Cookie");
   const cookie = (await login.parse(cookieHeader)) ?? { isLoggedIn: false };
+  const { getSession } = await Session;
   const session = await getSession(cookieHeader);
 
   // mail.sendMail({

@@ -4,6 +4,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 import { Id, toast } from "react-toastify";
 import { LoginCookie } from "~/types";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 export const meta: MetaFunction = () => {
   return [
@@ -172,7 +173,13 @@ export default function Login() {
               ></FontAwesomeIcon>
             </div>
           </div>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col items-center space-y-4">
+            <Turnstile
+              siteKey="0x4AAAAAAAvV9Dwxni70xFRs"
+              options={{
+                language: "id",
+              }}
+            />
             <button
               className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full"
               type="button"

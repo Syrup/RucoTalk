@@ -18,10 +18,10 @@ import fs from "fs";
 
 import { Form, useLoaderData } from "@remix-run/react";
 import FancyArea from "~/components/fancy-area";
-import { DB } from "~/.server/db";
+import { DB } from "~/.server/db.server";
 import { login } from "~/.server/cookies";
 import { LoginCookie, User } from "~/types";
-import { getSession } from "~/.server/sessions";
+import { Session } from "~/.server/sessions";
 import { Attachment } from "~/types/Thread";
 import { v4 } from "uuid";
 
@@ -30,6 +30,7 @@ export const action: ActionFunction = async ({ request, context }) => {
   const cookie: LoginCookie = (await login.parse(cookieHeader)) ?? {
     isLoggedIn: false,
   };
+  const { getSession } = await Session;
   const session = await getSession(cookieHeader);
   const form = await request.formData();
 
@@ -90,7 +91,7 @@ export const action: ActionFunction = async ({ request, context }) => {
 
         attachments.push({
           name,
-          url: `${url.origin}/files/${name}`,
+          url: `/files/${name}`,
           type: file?.blob.type!,
         });
 

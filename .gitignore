@@ -6,4 +6,6 @@ node_modules
 .dummyacc.json
 remix-*
 uploads
-drizzle/**/*
+drizzle
+.vercel
+public/build

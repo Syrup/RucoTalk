@@ -1,9 +1,9 @@
 import { json, type ActionFunctionArgs } from "@remix-run/node"; // or cloudflare/deno
 import { jwtDecode } from "jwt-decode";
-import { DB } from "~/.server/db";
+import { DB } from "~/.server/db.server";
 import { login as loginCookie } from "~/.server/cookies";
 import { v4 as uuidv4 } from "uuid";
-import { getSession, commitSession } from "~/.server/sessions";
+import { Session } from "~/.server/sessions";
 import { generateTokens } from "~/.server/utils";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -13,6 +13,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       const cookie = (await loginCookie.parse(cookieHeader)) ?? {
         isLoggedIn: false,
       };
+      const { getSession, commitSession, destroySession } = await Session;
       const session = await getSession(cookieHeader);
       const headers = new Headers();
       const data = await request.json();

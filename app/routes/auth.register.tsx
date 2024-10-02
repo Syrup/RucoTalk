@@ -1,5 +1,5 @@
 import { ActionFunctionArgs, json } from "@remix-run/node";
-import { DB } from "~/.server/db";
+import { DB } from "~/.server/db.server";
 
 export async function action({ request }: ActionFunctionArgs) {
   switch (request.method) {

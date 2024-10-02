@@ -44,7 +44,7 @@ import {
 } from "~/components/ui/table";
 import { LoaderFunctionArgs } from "@remix-run/node";
 import { Thread } from "~/types/Thread";
-import { DB } from "~/.server/db";
+import { DB } from "~/.server/db.server";
 import { User } from "~/types";
 import { AlertDialogDemo } from "~/components/alert-dialog-json";
 import { threads } from "db/schema/threads";

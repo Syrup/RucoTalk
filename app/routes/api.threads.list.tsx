@@ -1,6 +1,6 @@
 import { json, LoaderFunctionArgs } from "@remix-run/node";
 import { threads } from "db/schema/threads";
-import { DB } from "~/.server/db";
+import { DB } from "~/.server/db.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const db = new DB();

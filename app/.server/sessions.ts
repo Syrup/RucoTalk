@@ -7,6 +7,7 @@ import { client } from "./redis";
 import { createClient } from "redis";
 
 async function createDatabaseSessionStorage({ cookie }: { cookie: Cookie }) {
+  await client.connect();
   return createSessionStorage({
     cookie,
     async createData(data, expires) {
@@ -20,7 +21,8 @@ async function createDatabaseSessionStorage({ cookie }: { cookie: Cookie }) {
     },
     async readData(id) {
       console.log(await client.hGetAll(`session:${id}`), id);
-      return (await client.hGetAll(`session:${id}`)) ?? null;
+      const data = (await client.hGetAll(`session:${id}`)) ?? null;
+      return data;
     },
     async updateData(id, data, expires) {
       await client.hSet(`session:${id}`, data);
@@ -34,7 +36,6 @@ async function createDatabaseSessionStorage({ cookie }: { cookie: Cookie }) {
   });
 }
 
-export const { getSession, commitSession, destroySession } =
-  await createDatabaseSessionStorage({
-    cookie: sessionCookie,
-  });
+export const Session = createDatabaseSessionStorage({
+  cookie: sessionCookie,
+});

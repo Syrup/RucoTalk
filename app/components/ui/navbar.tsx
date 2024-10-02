@@ -40,7 +40,7 @@ function NavLinks({
           Home
         </Link>
         <Link
-          to="dashboard"
+          to="/dashboard"
           className={`${
             active === "dashboard" ? "text-foreground" : "text-muted-foreground"
           } hover:text-foreground hover:no-underline`}
@@ -86,7 +86,7 @@ function NavLinks({
           Home
         </Link>
         <Link
-          to="dashboard"
+          to="/dashboard"
           className={`transition-colors ${
             active === "dashboard" ? "text-foreground" : "text-muted-foreground"
           } hover:text-foreground hover:no-underline`}

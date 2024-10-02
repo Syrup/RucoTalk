@@ -6,7 +6,7 @@ import {
 } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import React from "react";
-import { DB } from "~/.server/db";
+import { DB } from "~/.server/db.server";
 import { Textarea } from "~/components/ui/textarea";
 import type { Thread } from "~/types/Thread";
 import ReactMarkdown from "react-markdown";
@@ -45,7 +45,7 @@ interface ThreadProps {
   content: string;
 }
 
-const Thread: React.FC<ThreadProps> = ({ id, title, content }) => {
+export default function Thread({ id, title, content }: ThreadProps) {
   const data = useLoaderData<typeof loader>() as Thread;
 
   return (
@@ -65,11 +65,13 @@ const Thread: React.FC<ThreadProps> = ({ id, title, content }) => {
           <div className="flex flex-wrap gap-4">
             {data.attachments.map((attachment) => {
               if (attachment.type === "image/png") {
+                const url = new URL(location.origin + attachment.url);
+
                 return (
                   <div className="relative group border">
                     <img
                       key={attachment.name.split(".")[0]}
-                      src={attachment.url}
+                      src={url.href}
                       alt={attachment.name}
                       className="max-w-md max-h-md object-contain"
                     />
@@ -126,6 +128,4 @@ const Thread: React.FC<ThreadProps> = ({ id, title, content }) => {
       </div>
     </div>
   );
-};
-
-export default Thread;
+}
