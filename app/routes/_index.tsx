@@ -1,6 +1,8 @@
 import {
   json,
+  LoaderFunctionArgs,
   redirect,
+  TypedResponse,
   type ActionFunction,
   type LoaderFunction,
   type MetaFunction,
@@ -8,7 +10,7 @@ import {
 import { useLoaderData } from "@remix-run/react";
 import { jwtDecode } from "jwt-decode";
 import { login } from "~/.server/cookies";
-import type { User } from "~/types";
+import type { LoginCookie, User } from "~/types";
 import { Session } from "~/.server/sessions";
 import { Button } from "~/components/ui/button";
 import { mail } from "~/.server/utils";
@@ -28,12 +30,19 @@ const isTokenExpired = (token: string) => {
 
 export const meta: MetaFunction = () => {
   return [
-    { title: "New Remix App" },
-    { name: "description", content: "Welcome to Remix!" },
+    { title: "RucoTalk: Ceritakan Masalahmu" },
+    { name: "description", content: "Ceritakan masalahmu disini!" },
   ];
 };
 
-export const loader: LoaderFunction = async ({ request }) => {
+export async function loader({ request }: LoaderFunctionArgs): Promise<
+  TypedResponse<{
+    isLoggedIn: boolean;
+    user: User;
+    cookie: LoginCookie;
+    expired: number;
+  }>
+> {
   const cookieHeader = request.headers.get("Cookie");
   const cookie = (await login.parse(cookieHeader)) ?? { isLoggedIn: false };
   const { getSession } = await Session;
@@ -52,9 +61,10 @@ export const loader: LoaderFunction = async ({ request }) => {
   return json({
     isLoggedIn: !isTokenExpired(session.get("token")),
     user: cookie.user,
+    cookie,
     expired: cookie.expired,
   });
-};
+}
 
 export const action: ActionFunction = async ({ request }) => {
   const cookieHeader = request.headers.get("Cookie");
@@ -72,11 +82,7 @@ export const action: ActionFunction = async ({ request }) => {
 };
 
 function Logged() {
-  const user = useLoaderData<{
-    user: User;
-    isLoggedIn: boolean;
-    expired: number;
-  }>().user;
+  const { user, cookie } = useLoaderData<typeof loader>();
 
   return (
     <div className="p-4 font-sans">

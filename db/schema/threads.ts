@@ -6,6 +6,7 @@ import {
   uuid,
   jsonb,
 } from "drizzle-orm/pg-core";
+import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import { users } from "./users";
 
 export const threads = pgTable("threads", {
@@ -16,6 +17,7 @@ export const threads = pgTable("threads", {
     .notNull()
     .references(() => users.id),
   status: varchar("status", { enum: ["open", "closed"] }).default("open"),
+  comments: jsonb("comments").array().default([]),
   attachments: jsonb("attachments").array().default([]),
   createdAt: timestamp("createdAt").defaultNow(),
   updatedAt: timestamp("updatedAt").defaultNow(),

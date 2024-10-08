@@ -6,20 +6,28 @@ import {
   DropdownMenuSeparator,
   DropdownMenuItem,
 } from "./dropdown-menu";
+import { Separator } from "./separator";
 import { Menu, Package2, CircleUser } from "lucide-react";
 import { Link, useLocation } from "@remix-run/react";
 import { Button } from "./button";
 import { SheetTrigger, SheetContent, Sheet } from "./sheet";
 import { useEffect, useState } from "react";
+import { LoginCookie } from "~/types";
+import { SerializeFrom } from "@remix-run/node";
+import { ZodNull } from "zod";
+
+type SerializeLoginCookie = SerializeFrom<LoginCookie>;
 
 function NavLinks({
   active,
   device,
+  user,
 }: {
   active: string;
   device: "mobile" | "desktop";
+  user: SerializeLoginCookie | null;
 }) {
-  console.log(active);
+  console.log(user?.isLoggedIn);
 
   if (device === "mobile") {
     return (
@@ -29,7 +37,7 @@ function NavLinks({
           className="flex items-center gap-2 text-lg font-semibold hover:no-underline"
         >
           <Package2 className="w-6 h-6" />
-          <span className="sr-only">Acme Inc</span>
+          <span className="sr-only">RucoTalk</span>
         </Link>
         <Link
           to="/"
@@ -39,31 +47,23 @@ function NavLinks({
         >
           Home
         </Link>
-        <Link
-          to="/dashboard"
-          className={`${
-            active === "dashboard" ? "text-foreground" : "text-muted-foreground"
-          } hover:text-foreground hover:no-underline`}
-        >
-          Dashboard
-        </Link>
-        <Link
-          to="#"
-          className="text-muted-foreground hover:text-foreground hover:no-underline"
-        >
-          Products
-        </Link>
+        {user?.isLoggedIn ? (
+          <Link
+            to="/dashboard"
+            className={`${
+              active === "dashboard"
+                ? "text-foreground"
+                : "text-muted-foreground"
+            } hover:text-foreground hover:no-underline`}
+          >
+            Dashboard
+          </Link>
+        ) : null}
         <Link
           to="#"
           className="text-muted-foreground hover:text-foreground hover:no-underline"
         >
-          Customers
-        </Link>
-        <Link
-          to="#"
-          className="text-muted-foreground hover:text-foreground hover:no-underline"
-        >
-          Analytics
+          Tentang Kami
         </Link>
       </nav>
     );
@@ -75,7 +75,7 @@ function NavLinks({
           className="flex items-center gap-2 text-lg font-semibold md:text-base hover:no-underline"
         >
           <Package2 className="w-6 h-6" />
-          <span className="sr-only">Acme Inc</span>
+          <span className="sr-only">RucoTalk</span>
         </Link>
         <Link
           to="/"
@@ -85,42 +85,40 @@ function NavLinks({
         >
           Home
         </Link>
+        {user?.isLoggedIn ? (
+          <Link
+            to="/dashboard"
+            className={`${
+              active === "dashboard"
+                ? "text-foreground"
+                : "text-muted-foreground"
+            } hover:text-foreground hover:no-underline`}
+          >
+            Dashboard
+          </Link>
+        ) : (
+          ""
+        )}
         <Link
-          to="/dashboard"
-          className={`transition-colors ${
-            active === "dashboard" ? "text-foreground" : "text-muted-foreground"
-          } hover:text-foreground hover:no-underline`}
+          to="/about"
+          className="text-muted-foreground hover:text-foreground hover:no-underline"
         >
-          Dashboard
-        </Link>
-        <Link
-          to="#"
-          className="transition-colors text-muted-foreground hover:text-foreground hover:no-underline"
-        >
-          Products
-        </Link>
-        <Link
-          to="#"
-          className="transition-colors text-muted-foreground hover:text-foreground hover:no-underline"
-        >
-          Customers
-        </Link>
-        <Link
-          to="#"
-          className="transition-colors text-muted-foreground hover:text-foreground hover:no-underline"
-        >
-          Analytics
+          Tentang Kami
         </Link>
       </nav>
     );
   }
 }
 
-export default function Navbar() {
+export default function Navbar({
+  user,
+}: {
+  user: SerializeLoginCookie | null;
+}) {
   const location = useLocation();
   const active = location.pathname.split("/")[1];
 
-  console.log(active);
+  console.log(user);
 
   return (
     <header className="sticky top-0 flex items-center justify-between w-full h-16 gap-4 px-4 border-b bg-background md:px-6">
@@ -134,12 +132,12 @@ export default function Navbar() {
             </Button>
           </SheetTrigger>
           <SheetContent side="left">
-            <NavLinks active={active} device="mobile" />
+            <NavLinks active={active} device="mobile" user={user} />
           </SheetContent>
         </Sheet>
 
         {/* Logo and Links for Desktop */}
-        <NavLinks active={active} device="desktop"></NavLinks>
+        <NavLinks active={active} device="desktop" user={user} />
       </div>
 
       {/* User Icon */}
@@ -152,12 +150,39 @@ export default function Navbar() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>Settings</DropdownMenuItem>
-            <DropdownMenuItem>Support</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>Logout</DropdownMenuItem>
+            {user !== null && user.isLoggedIn ? (
+              <>
+                <DropdownMenuLabel>
+                  Welcome, {user.user.username}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => {
+                    window.location.href = "/auth/logout";
+                  }}
+                >
+                  <a
+                    href="/auth/logout"
+                    className="hover:no-underline text-inherit hover:text-black/35"
+                  >
+                    Logout
+                  </a>
+                </DropdownMenuItem>
+              </>
+            ) : (
+              <DropdownMenuItem
+                onClick={() => {
+                  window.location.href = "/login";
+                }}
+              >
+                <a
+                  href="/login"
+                  className="hover:no-underline text-inherit hover:text-black/35"
+                >
+                  Login
+                </a>
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

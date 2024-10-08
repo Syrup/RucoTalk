@@ -20,6 +20,7 @@ import {
   Search,
   Users,
 } from "lucide-react";
+import UserStatus from "~/components/user-status";
 
 // import Navbar from "~/components/ui/navbar";
 
@@ -45,23 +46,43 @@ import {
 import { LoaderFunctionArgs } from "@remix-run/node";
 import { Thread } from "~/types/Thread";
 import { DB } from "~/.server/db.server";
-import { User } from "~/types";
+import { LoginCookie, User } from "~/types";
 import { AlertDialogDemo } from "~/components/alert-dialog-json";
 import { threads } from "db/schema/threads";
+import { redirect } from "@remix-run/node";
+import { Session } from "~/.server/sessions";
+import { login } from "~/.server/cookies";
 
 const db = new DB();
 
 type ThreadWithAuthor = Thread & { author: User };
 
-export async function loader({
-  request,
-}: LoaderFunctionArgs): Promise<TypedResponse<ThreadWithAuthor[]>> {
+export async function loader({ request }: LoaderFunctionArgs) {
+  const cookieHeader = request.headers.get("Cookie");
+  const cookie:
+    | LoginCookie
+    | {
+        isLoggedIn: false;
+      } = (await login.parse(cookieHeader)) ?? {
+    isLoggedIn: false,
+  };
+  const { getSession } = await Session;
+  const session = await getSession(request.headers.get("Cookie"));
+  const token = session.get("token");
+  if (!token) {
+    return redirect("/login");
+  }
+
   const url = new URL(request.url);
   const threads = (await fetch(`${url.origin}/api/threads/list`, {
     headers: {
       Authorization: `Bearer ${process.env.REFRESH_SECRET}`,
     },
   }).then((res) => res.json())) as ThreadWithAuthor[];
+
+  const db = new DB();
+  const users = await db.getUsers();
+  const admins = users.filter((user) => user.roles?.includes("admin"));
 
   await Promise.all(
     threads.map(async (thread) => {
@@ -72,11 +93,29 @@ export async function loader({
     })
   );
 
-  return json(threads, 200);
+  return json(
+    {
+      threads,
+      cookie: cookie,
+      admins,
+      usersTotal: users.length,
+    },
+    200
+  );
+}
+
+function getAvatarFallback(username: string | null) {
+  return username === "" || !username
+    ? "U"
+    : username
+        .split(" ")
+        .map((name) => name.charAt(0).toUpperCase())
+        .join("");
 }
 
 export default function Dashboard() {
-  const data = useLoaderData<typeof loader>();
+  const { threads, cookie, admins, usersTotal } =
+    useLoaderData<typeof loader>();
 
   return (
     <div className="flex flex-col w-full min-h-screen">
@@ -88,7 +127,7 @@ export default function Dashboard() {
               <Users className="w-4 h-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold">0</p>
+              <p className="text-2xl font-bold">{usersTotal}</p>
             </CardContent>
           </Card>
           <Card x-chunk="dashboard-01-chunk-1">
@@ -97,7 +136,7 @@ export default function Dashboard() {
               <FilePen className="w-4 h-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold">{data.length}</p>
+              <p className="text-2xl font-bold">{threads.length}</p>
             </CardContent>
           </Card>
         </div>
@@ -130,7 +169,7 @@ export default function Dashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data.map((thread) => {
+                  {threads.map((thread) => {
                     const date = new Date(thread.createdAt!);
                     const fullDate = `${date
                       .getDate()
@@ -171,39 +210,35 @@ export default function Dashboard() {
           </Card>
           <Card x-chunk="dashboard-01-chunk-5">
             <CardHeader>
-              <CardTitle>Admin</CardTitle>
+              <CardTitle>Admins</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-8">
-              <div className="flex items-center gap-4">
-                <Avatar className="hidden h-9 w-9 sm:flex">
-                  <AvatarImage src="" alt="Avatar" />
-                  <AvatarFallback>AD</AvatarFallback>
-                </Avatar>
-                <div className="grid gap-1">
-                  <p className="text-sm font-medium leading-none">Admin 1</p>
-                  <p className="text-sm text-muted-foreground">
-                    admin1@email.com
-                  </p>
-                </div>
-                <div className="ml-auto font-medium">
-                  <Badge variant="success">Online</Badge>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <Avatar className="hidden h-9 w-9 sm:flex">
-                  <AvatarImage src="" alt="Avatar" />
-                  <AvatarFallback>AD</AvatarFallback>
-                </Avatar>
-                <div className="grid gap-1">
-                  <p className="text-sm font-medium leading-none">Admin 2</p>
-                  <p className="text-sm text-muted-foreground">
-                    admin2@email.com
-                  </p>
-                </div>
-                <div className="ml-auto font-medium">
-                  <Badge variant="secondary">Offline</Badge>
-                </div>
-              </div>
+              {admins.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Belum ada admin.
+                </p>
+              ) : (
+                admins.map((admin) => {
+                  return (
+                    <div key={admin.id} className="flex items-center gap-4">
+                      <Avatar className="hidden h-9 w-9 sm:flex">
+                        <AvatarImage src="" alt="Avatar" />
+                        <AvatarFallback>
+                          {getAvatarFallback(admin.username)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="grid gap-1">
+                        <p className="text-sm font-medium leading-none">
+                          {admin.username}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {admin.email}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </CardContent>
           </Card>
         </div>

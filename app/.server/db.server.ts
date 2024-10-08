@@ -8,8 +8,10 @@ import { z } from "zod";
 import { PgInsertValue } from "drizzle-orm/pg-core";
 import { EventEmitter } from "node:events";
 import { User } from "~/types";
-import { Thread } from "~/types/Thread";
+import { Thread, ThreadComment } from "~/types/Thread";
 import { threads } from "db/schema/threads";
+import { client } from "./redis";
+import { v4 } from "uuid";
 
 const userSchema = z.object({
   id: z.string().uuid(),
@@ -40,6 +42,7 @@ const saltRounds = 10;
 class DB extends EventEmitter {
   public db: ReturnType<typeof drizzle>;
   public pool: Pool;
+  public redis: typeof client;
 
   constructor() {
     super();
@@ -50,6 +53,7 @@ class DB extends EventEmitter {
     });
 
     this.db = drizzle(this.pool);
+    this.redis = client;
   }
 
   async insert<T extends Tables>(table: T, data: PgInsertValue<T>) {
@@ -80,6 +84,10 @@ class DB extends EventEmitter {
     }
 
     return await this.db.delete(table).where(eq(table.id, id));
+  }
+
+  async getUsers({ limit = 10 }: { limit?: number } = {}) {
+    return await this.db.select().from(users).limit(limit);
   }
 
   async getUser({
@@ -161,7 +169,7 @@ class DB extends EventEmitter {
     thread,
   }: {
     author: User;
-    thread: Omit<Thread, "authorId" | "id" | "status">;
+    thread: Omit<Thread, "authorId" | "id" | "status" | "comments">;
   }) {
     const user = await this.getUser({ username: author.username! });
 
@@ -190,9 +198,62 @@ class DB extends EventEmitter {
     return thread[0] as Thread;
   }
 
+  async setUserStatus({
+    id,
+    status,
+  }: {
+    id: string;
+    status: "online" | "offline";
+  }) {
+    return await this.redis.set(`user:${id}:status`, status);
+  }
+
   async close() {
+    console.log("Closing redis connection");
+    await this.redis.quit();
     console.log("Closing db connection");
     return this.pool.end();
+  }
+
+  async addComment({
+    id,
+    data,
+  }: {
+    id: string;
+    data: Omit<ThreadComment, "id" | "createdAt">;
+  }) {
+    const thread = await this.getThread(id);
+    if (!id) {
+      throw new DBError("Thread id is required");
+    }
+
+    if (!data) {
+      throw new DBError("Data is required");
+    }
+
+    return await this.db
+      .update(threads)
+      .set({
+        comments: [
+          ...thread.comments,
+          {
+            ...data,
+            id: v4(),
+            createdAt: new Date(),
+          },
+        ],
+      })
+      .where(eq(threads.id, id));
+  }
+
+  async isAdmin(user: User | string) {
+    if (typeof user === "string") {
+      const u = await this.getUser({ id: user });
+
+      return u?.roles?.includes("admin");
+    }
+
+    return user.roles?.includes("admin");
   }
 }
 

@@ -67,8 +67,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           })
         );
 
-        // headers.append("Authorization", `Bearer ${accessToken}`);
-
         return json(
           {
             status: "success",

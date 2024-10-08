@@ -7,6 +7,7 @@ import {
   useLoaderData,
   useNavigate,
 } from "@remix-run/react";
+import { json } from "@remix-run/node";
 import styles from "./tailwind.css?url";
 import "react-toastify/dist/ReactToastify.min.css";
 import { library } from "@fortawesome/fontawesome-svg-core";
@@ -23,8 +24,16 @@ import {
 import { ToastContainer } from "react-toastify";
 import { jwtDecode } from "jwt-decode";
 import { useEffect } from "react";
-import { LinksFunction, LoaderFunction } from "@remix-run/node";
+import {
+  LinksFunction,
+  LoaderFunction,
+  LoaderFunctionArgs,
+} from "@remix-run/node";
 import Navbar from "~/components/ui/navbar";
+import { Session } from "./.server/sessions";
+import { login } from "./.server/cookies";
+import { LoginCookie } from "./types";
+import { client } from "./.server/redis";
 
 export const links: LinksFunction = () => [{ rel: "stylesheet", href: styles }];
 
@@ -51,16 +60,31 @@ library.add(
   faFileLines
 );
 
-export const loader: LoaderFunction = async ({ request }) => {
-  const url = request.url.split("?")[0];
-  const pathname = url.split("/")[3];
-  console.log(pathname);
-  return pathname;
-};
+export async function loader({ request }: LoaderFunctionArgs) {
+  const cookieHeader = request.headers.get("Cookie");
+  const cookie:
+    | LoginCookie
+    | {
+        isLoggedIn: false;
+      } = (await login.parse(cookieHeader)) ?? { isLoggedIn: false };
+  console.log(cookie);
+  if (!cookie.isLoggedIn) {
+    return {
+      cookie,
+    };
+  }
+
+  Object.assign(cookie, { isLoggedIn: isTokenExpired(cookie.token) });
+
+  return {
+    cookie,
+  };
+}
 
 export function Layout({ children }: { children: React.ReactNode }) {
+  "use server";
   const navigate = useNavigate();
-  const data = useLoaderData<string>();
+  const data = useLoaderData<typeof loader>();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -71,6 +95,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  console.log(data);
+
   return (
     <html lang="en">
       <head>
@@ -80,7 +106,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
-        <Navbar />
+        <Navbar user={data.cookie.isLoggedIn ? data.cookie : null} />
         <ToastContainer />
         {children}
         <ScrollRestoration />

@@ -1,8 +1,13 @@
-import { type MetaFunction } from "@remix-run/node";
+import {
+  LoaderFunctionArgs,
+  redirect,
+  type MetaFunction,
+} from "@remix-run/node";
 import React, { useState } from "react";
 import { toast } from "react-toastify";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
+import { Session } from "~/.server/sessions";
 
 export const meta: MetaFunction = () => {
   return [
@@ -10,6 +15,17 @@ export const meta: MetaFunction = () => {
     { name: "description", content: "Register for the forum" },
   ];
 };
+
+export async function loader({ request }: LoaderFunctionArgs) {
+  const { getSession } = await Session;
+  const session = await getSession(request.headers.get("Cookie"));
+  const token = session.get("token");
+  if (token) {
+    return redirect("/");
+  }
+
+  return {};
+}
 
 export default function Register() {
   const [passwordData, setPasswordData] = useState({

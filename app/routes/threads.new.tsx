@@ -13,6 +13,7 @@ import {
   json,
   SerializeFrom,
   TypedResponse,
+  redirect,
 } from "@remix-run/node";
 import fs from "fs";
 
@@ -24,6 +25,17 @@ import { LoginCookie, User } from "~/types";
 import { Session } from "~/.server/sessions";
 import { Attachment } from "~/types/Thread";
 import { v4 } from "uuid";
+
+export async function loader({ request }: LoaderFunctionArgs) {
+  const { getSession } = await Session;
+  const session = await getSession(request.headers.get("Cookie"));
+  const token = session.get("token");
+  if (!token) {
+    return redirect("/login");
+  }
+
+  return {};
+}
 
 export const action: ActionFunction = async ({ request, context }) => {
   const cookieHeader = request.headers.get("Cookie");
