@@ -20,7 +20,6 @@ import {
   Search,
   Users,
 } from "lucide-react";
-import UserStatus from "~/components/user-status";
 
 // import Navbar from "~/components/ui/navbar";
 
@@ -52,8 +51,6 @@ import { threads } from "db/schema/threads";
 import { redirect } from "@remix-run/node";
 import { Session } from "~/.server/sessions";
 import { login } from "~/.server/cookies";
-
-const db = new DB();
 
 type ThreadWithAuthor = Thread & { author: User };
 
