@@ -67,7 +67,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
     | {
         isLoggedIn: false;
       } = (await login.parse(cookieHeader)) ?? { isLoggedIn: false };
-  console.log(cookie);
   if (!cookie.isLoggedIn) {
     return {
       cookie,
@@ -94,8 +93,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
       navigate("/login");
     }
   }, []);
-
-  console.log(data);
 
   return (
     <html lang="en">

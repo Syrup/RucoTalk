@@ -1,10 +1,7 @@
-import { KeyvPostgresOptions } from "@keyv/postgres/dist/types";
 import crypto from "crypto";
-import { Cookie, createCookie, createSessionStorage } from "@remix-run/node"; // or cloudflare/deno
-import Keyv from "keyv";
+import { Cookie, createSessionStorage } from "@remix-run/node";
 import { sessionCookie } from "./cookies";
 import { client } from "./redis";
-import { createClient } from "redis";
 
 async function createDatabaseSessionStorage({ cookie }: { cookie: Cookie }) {
   await client.connect();
@@ -20,7 +17,6 @@ async function createDatabaseSessionStorage({ cookie }: { cookie: Cookie }) {
       return id;
     },
     async readData(id) {
-      console.log(await client.hGetAll(`session:${id}`), id);
       const data = (await client.hGetAll(`session:${id}`)) ?? null;
       return data;
     },

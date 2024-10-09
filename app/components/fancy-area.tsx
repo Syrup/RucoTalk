@@ -183,7 +183,7 @@ export default function FancyArea(props: FancyAreaProps) {
             ref={textareaRef}
             value={text}
             onChange={(e) => {
-              if(props.textAreaOnChange) {
+              if (props.textAreaOnChange) {
                 handleTextChange(e);
                 props.textAreaOnChange(e);
               } else {
@@ -191,7 +191,7 @@ export default function FancyArea(props: FancyAreaProps) {
               }
             }}
             onKeyDown={handleKeyDown}
-            placeholder="Build by @mxkaske, _powered by_ @shadcn **ui**. Supports raw <code>html</code>."
+            placeholder="Pesan disini..."
             className={`min-h-[200px] bg-gray-800 text-white border-gray-700 placeholder-gray-500 w-full ${props.textAreaClassName}`}
             name={props.textAreaName}
             id={props.textAreaId}

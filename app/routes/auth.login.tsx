@@ -1,4 +1,4 @@
-import { json, type ActionFunctionArgs } from "@remix-run/node"; // or cloudflare/deno
+import { json, type ActionFunctionArgs } from "@remix-run/node";
 import { jwtDecode } from "jwt-decode";
 import { DB } from "~/.server/db.server";
 import { login as loginCookie } from "~/.server/cookies";
@@ -18,7 +18,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       const headers = new Headers();
       const data = await request.json();
       const { login, password } = data;
-      // const url = process.env.FORU_MS_URL;
       const db = new DB();
 
       try {

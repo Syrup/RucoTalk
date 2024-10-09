@@ -6,15 +6,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuItem,
 } from "./dropdown-menu";
-import { Separator } from "./separator";
 import { Menu, Package2, CircleUser } from "lucide-react";
 import { Link, useLocation } from "@remix-run/react";
 import { Button } from "./button";
 import { SheetTrigger, SheetContent, Sheet } from "./sheet";
-import { useEffect, useState } from "react";
 import { LoginCookie } from "~/types";
 import { SerializeFrom } from "@remix-run/node";
-import { ZodNull } from "zod";
 
 type SerializeLoginCookie = SerializeFrom<LoginCookie>;
 
@@ -27,7 +24,6 @@ function NavLinks({
   device: "mobile" | "desktop";
   user: SerializeLoginCookie | null;
 }) {
-  console.log(user?.isLoggedIn);
 
   if (device === "mobile") {
     return (
@@ -36,7 +32,7 @@ function NavLinks({
           to="#"
           className="flex items-center gap-2 text-lg font-semibold hover:no-underline"
         >
-          <Package2 className="w-6 h-6" />
+          <img src="/favicon.ico" alt="RucoTalk Logo" className="w-6 h-6" />
           <span className="sr-only">RucoTalk</span>
         </Link>
         <Link
@@ -48,17 +44,32 @@ function NavLinks({
           Home
         </Link>
         {user?.isLoggedIn ? (
-          <Link
-            to="/dashboard"
-            className={`${
-              active === "dashboard"
-                ? "text-foreground"
-                : "text-muted-foreground"
-            } hover:text-foreground hover:no-underline`}
-          >
-            Dashboard
-          </Link>
-        ) : null}
+          user.user.roles?.includes("admin") ? (
+            <Link
+              to="/dashboard"
+              className={`${
+                active === "dashboard"
+                  ? "text-foreground"
+                  : "text-muted-foreground"
+              } hover:text-foreground hover:no-underline`}
+            >
+              Dashboard
+            </Link>
+          ) : (
+            <Link
+              to="/threads/new"
+              className={`${
+                active === "threads/new"
+                  ? "text-foreground"
+                  : "text-muted-foreground"
+              } hover:text-foreground hover:no-underline`}
+            >
+              Buat Thread
+            </Link>
+          )
+        ) : (
+          ""
+        )}
         <Link
           to="#"
           className="text-muted-foreground hover:text-foreground hover:no-underline"
@@ -74,7 +85,7 @@ function NavLinks({
           to="#"
           className="flex items-center gap-2 text-lg font-semibold md:text-base hover:no-underline"
         >
-          <Package2 className="w-6 h-6" />
+          <img src="/favicon.ico" alt="RucoTalk Logo" className="w-6 h-6" />
           <span className="sr-only">RucoTalk</span>
         </Link>
         <Link
@@ -86,16 +97,29 @@ function NavLinks({
           Home
         </Link>
         {user?.isLoggedIn ? (
-          <Link
-            to="/dashboard"
-            className={`${
-              active === "dashboard"
-                ? "text-foreground"
-                : "text-muted-foreground"
-            } hover:text-foreground hover:no-underline`}
-          >
-            Dashboard
-          </Link>
+          user.user.roles?.includes("admin") ? (
+            <Link
+              to="/dashboard"
+              className={`${
+                active === "dashboard"
+                  ? "text-foreground"
+                  : "text-muted-foreground"
+              } hover:text-foreground hover:no-underline`}
+            >
+              Dashboard
+            </Link>
+          ) : (
+            <Link
+              to="/threads/new"
+              className={`${
+                active === "threads/new"
+                  ? "text-foreground"
+                  : "text-muted-foreground"
+              } hover:text-foreground hover:no-underline`}
+            >
+              Buat Thread
+            </Link>
+          )
         ) : (
           ""
         )}
@@ -116,9 +140,7 @@ export default function Navbar({
   user: SerializeLoginCookie | null;
 }) {
   const location = useLocation();
-  const active = location.pathname.split("/")[1];
-
-  console.log(user);
+  const active = location.pathname.split("/").slice(1).join("/");
 
   return (
     <header className="sticky top-0 flex items-center justify-between w-full h-16 gap-4 px-4 border-b bg-background md:px-6">
@@ -170,18 +192,28 @@ export default function Navbar({
                 </DropdownMenuItem>
               </>
             ) : (
-              <DropdownMenuItem
-                onClick={() => {
-                  window.location.href = "/login";
-                }}
-              >
-                <a
-                  href="/login"
-                  className="hover:no-underline text-inherit hover:text-black/35"
+              <>
+                <DropdownMenuItem
+                  onClick={() => {
+                    window.location.href = "/login";
+                  }}
                 >
-                  Login
-                </a>
-              </DropdownMenuItem>
+                  <a
+                    href="/login"
+                    className="hover:no-underline text-inherit hover:text-black/35"
+                  >
+                    Login
+                  </a>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <a
+                    href="/register"
+                    className="hover:no-underline text-inherit hover:text-black/35"
+                  >
+                    Register
+                  </a>
+                </DropdownMenuItem>
+              </>
             )}
           </DropdownMenuContent>
         </DropdownMenu>

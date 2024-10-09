@@ -4,7 +4,8 @@ import { DB } from "~/.server/db.server";
 export async function action({ request }: ActionFunctionArgs) {
   switch (request.method) {
     case "POST": {
-      const { createUser, getUser } = new DB();
+      const db = new DB();
+      const { createUser, getUser } = db;
       const { username, email, password } = (await request.json()) as {
         username: string;
         email: string;
@@ -12,13 +13,13 @@ export async function action({ request }: ActionFunctionArgs) {
       };
 
       try {
-        const checkUser = await getUser({ email: email });
+        const checkUser = await db.getUser({ email: email });
 
-        if (checkUser?.email === email) {
-          throw new Error("Email is already in use. Please use another email.");
+        if (checkUser !== null) {
+          throw new Error("Akun sudah ada.");
         }
 
-        await createUser({ username, email, password });
+        await db.createUser({ username, email, password });
 
         return json(
           {
@@ -52,6 +53,8 @@ export async function action({ request }: ActionFunctionArgs) {
             }
           );
         }
+
+        console.error("Error creating user:", error);
 
         return json(
           {

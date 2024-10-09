@@ -1,31 +1,9 @@
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuItem,
-} from "~/components/ui/dropdown-menu";
 import { Link, useLoaderData } from "@remix-run/react";
-import { json, TypedResponse } from "@remix-run/node";
-import {
-  Activity,
-  ArrowUpRight,
-  CircleUser,
-  CreditCard,
-  DollarSign,
-  FilePen,
-  Menu,
-  Package2,
-  Search,
-  Users,
-} from "lucide-react";
-
-// import Navbar from "~/components/ui/navbar";
+import { json } from "@remix-run/node";
+import { FilePen, Users } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Badge } from "~/components/ui/badge";
-import { Button } from "~/components/ui/button";
 import {
   Card,
   CardContent,
@@ -33,7 +11,6 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
-import { SheetTrigger, SheetContent, Sheet } from "~/components/ui/sheet";
 import {
   Table,
   TableBody,
@@ -46,8 +23,6 @@ import { LoaderFunctionArgs } from "@remix-run/node";
 import { Thread } from "~/types/Thread";
 import { DB } from "~/.server/db.server";
 import { LoginCookie, User } from "~/types";
-import { AlertDialogDemo } from "~/components/alert-dialog-json";
-import { threads } from "db/schema/threads";
 import { redirect } from "@remix-run/node";
 import { Session } from "~/.server/sessions";
 import { login } from "~/.server/cookies";
@@ -80,6 +55,12 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const db = new DB();
   const users = await db.getUsers();
   const admins = users.filter((user) => user.roles?.includes("admin"));
+
+  if (cookie.isLoggedIn) {
+    if (!cookie.user.roles?.includes("admin")) {
+      return redirect("/");
+    }
+  }
 
   await Promise.all(
     threads.map(async (thread) => {
@@ -144,17 +125,6 @@ export default function Dashboard() {
                 <CardTitle>Threads</CardTitle>
                 <CardDescription>Semua Threads ada disini.</CardDescription>
               </div>
-              {/* <AlertDialogDemo
-                className="gap-1 ml-auto"
-                buttonText="Lihat data dalam bentuk JSON"
-                lang="json"
-                dialogTitle="Data Threads"
-                dialogContent={JSON.stringify(data, null, 2)}
-                close={true}
-                closeText="Tutup"
-                children={<ArrowUpRight className="w-4 h-4" />}
-              /> */}
-              {/* <ArrowUpRight className="w-4 h-4" /> */}
             </CardHeader>
             <CardContent>
               <Table>

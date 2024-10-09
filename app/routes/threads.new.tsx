@@ -4,27 +4,15 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { X } from "lucide-react";
 import { Badge } from "~/components/ui/badge";
-import {
-  ActionFunction,
-  LoaderFunction,
-  LoaderFunctionArgs,
-  unstable_createFileUploadHandler,
-  unstable_parseMultipartFormData,
-  json,
-  SerializeFrom,
-  TypedResponse,
-  redirect,
-} from "@remix-run/node";
-import fs from "fs";
-
-import { Form, useLoaderData } from "@remix-run/react";
+import { LoaderFunctionArgs, redirect } from "@remix-run/node";
+import { Form } from "@remix-run/react";
 import FancyArea from "~/components/fancy-area";
-import { DB } from "~/.server/db.server";
-import { login } from "~/.server/cookies";
-import { LoginCookie, User } from "~/types";
 import { Session } from "~/.server/sessions";
-import { Attachment } from "~/types/Thread";
-import { v4 } from "uuid";
+import { toast } from "react-toastify";
+import {
+  Turnstile,
+  TurnstileServerValidationResponse,
+} from "@marsidev/react-turnstile";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const { getSession } = await Session;
@@ -37,110 +25,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
   return {};
 }
 
-export const action: ActionFunction = async ({ request, context }) => {
-  const cookieHeader = request.headers.get("Cookie");
-  const cookie: LoginCookie = (await login.parse(cookieHeader)) ?? {
-    isLoggedIn: false,
-  };
-  const { getSession } = await Session;
-  const session = await getSession(cookieHeader);
-  const form = await request.formData();
-
-  console.log("Form", form);
-
-  // if (
-  //   request.headers.get("Authorization") !== `Bearer ${session.get("token")}`
-  // ) {
-  //   return new Response("Unauthorized", {
-  //     status: 401,
-  //   });
-  // }
-
-  console.log("here");
-
-  try {
-    // console.log("Request", request);
-    // const formData = await request.formData();
-
-    const filePromises = form.getAll("file").map(async (file) => {
-      if (file instanceof File) {
-        const buffer = await file.arrayBuffer();
-        const blob = new Blob([buffer], { type: file.type });
-        return { name: file.name, blob };
-      }
-      return null;
-    });
-
-    const imagePromises = form.getAll("image").map(async (file) => {
-      if (file instanceof File) {
-        const buffer = await file.arrayBuffer();
-        const blob = new Blob([buffer], { type: file.type });
-        return { name: file.name, blob };
-      }
-      return null;
-    });
-
-    const attachments: Attachment[] = [];
-    const filesWithBlobs = await Promise.all([
-      ...filePromises,
-      ...imagePromises,
-    ]);
-    console.log("Files with Blobs", filesWithBlobs);
-
-    await Promise.all(
-      filesWithBlobs.map(async (file) => {
-        const url = new URL(request.url);
-        const extension = /\.[0-9a-z]+$/i.exec(file?.name!)![0];
-        const name = v4() + extension;
-        console.log("Name", name);
-
-        if (file) {
-          fs.writeFileSync(
-            `./uploads/${name}`,
-            new Uint8Array(await file.blob.arrayBuffer())
-          );
-        }
-
-        attachments.push({
-          name,
-          url: `/files/${name}`,
-          type: file?.blob.type!,
-        });
-
-        console.log("Attachments 1", attachments);
-      })
-    );
-
-    console.log("Attachments", attachments);
-    console.log("Form", form);
-    // console.log("Form ", form);
-    console.log("Files", form.getAll("file"));
-
-    // console.log("Form", form.get("title"), form.get("content"));
-
-    const db = new DB();
-
-    await db.newThread({
-      author: cookie.user,
-      thread: {
-        title: form.get("title") as string,
-        content: form.get("content") as string,
-        attachments,
-      },
-    });
-
-    return new Response("Files uploaded", {
-      status: 200,
-    });
-  } catch (e) {
-    console.log(e);
-
-    return new Response("Failed to upload files", {
-      status: 500,
-    });
-  }
-};
-
 const ThreadsNew = () => {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -148,8 +32,6 @@ const ThreadsNew = () => {
   const [images, setImages] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
-  console.log(images, file);
-  console.log(fileInputRef, imageInputRef);
   // const { user, token } = useLoaderData<typeof loader>();
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -171,8 +53,6 @@ const ThreadsNew = () => {
         dataTransfer.items.add(file);
       });
 
-      console.log(dataTransfer.files, updatedFiles);
-
       // Update the file input's files property
       const fileInput = e.target;
       fileInput.files = dataTransfer.files;
@@ -182,7 +62,6 @@ const ThreadsNew = () => {
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log(e.target.files);
     const newImages = Array.from(e.target.files as FileList);
 
     setImages((prevImages) => {
@@ -238,18 +117,113 @@ const ThreadsNew = () => {
     images.forEach((image) => {
       formData.append("image", image);
     });
-    const res = await fetch("/threads/new", {
+    const token = (
+      document.querySelector(
+        'input[name="cf-turnstile-response"]'
+      ) as HTMLInputElement
+    ).value;
+
+    const res = await fetch("/auth/verify", {
       method: "POST",
+      body: JSON.stringify({ token }),
       headers: {
-        // Authorization: `Bearer ${token}`,
-        // "Content-Type": "multipart/form-data",
+        "content-type": "application/json",
       },
-      body: formData,
     });
-    if (res.ok) {
-      console.log("Thread created");
+
+    const data = (await res.json()) as TurnstileServerValidationResponse;
+
+    if (data.success) {
+      if (!title || !content) {
+        return toast.error("Judul dan konten tidak boleh kosong", {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          pauseOnHover: false,
+          closeOnClick: true,
+          theme: "dark",
+          toastId: "emptyFields",
+        });
+      }
+
+      const promise = new Promise<{
+        status: string;
+        code: number;
+        message: string;
+        threadId: string;
+      }>(async (resolve, reject) => {
+        try {
+          const res = await fetch("/api/threads/new", {
+            method: "POST",
+            body: formData,
+          });
+          const data = await res.json();
+
+          console.log(data);
+
+          if (data.code === 200) {
+            resolve(data);
+          } else {
+            reject(data);
+          }
+        } catch (e) {
+          reject({
+            status: "error",
+            code: 500,
+            message: (e as any).message,
+          });
+        }
+      });
+
+      await toast.promise(promise, {
+        pending: {
+          render() {
+            return "Membuat thread...";
+          },
+          pauseOnHover: false,
+          theme: "dark",
+          toastId: "loadingThread",
+        },
+        success: {
+          render(res) {
+            return (
+              <div>
+                <p>Thread berhasil dibuat</p>
+                <a href={`/threads/${res.data.threadId}`}>Lihat thread</a>
+              </div>
+            );
+          },
+          type: "success",
+          pauseOnHover: false,
+          theme: "dark",
+          toastId: "successThread",
+          closeOnClick: true,
+        },
+        error: {
+          render(opt) {
+            const { data } = opt as any;
+            return `Error: ${data.message}`;
+          },
+          type: "error",
+          pauseOnHover: false,
+          theme: "dark",
+          toastId: "errorThread",
+          closeOnClick: true,
+        },
+      });
     } else {
-      console.log("Failed to create thread");
+      return toast.error(
+        "Tolong selesaikan verifikasi bahwa anda bukan robot",
+        {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          pauseOnHover: false,
+          closeOnClick: true,
+          theme: "dark",
+          toastId: "verifyFailed",
+        }
+      );
     }
   };
 
@@ -379,6 +353,12 @@ const ThreadsNew = () => {
               );
             })}
           </div>
+          <Turnstile
+            siteKey="0x4AAAAAAAvV9Dwxni70xFRs"
+            options={{
+              language: "id",
+            }}
+          />
           <Button className="mt-4" type="submit">
             Submit
           </Button>

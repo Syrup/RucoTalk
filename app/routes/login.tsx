@@ -125,7 +125,7 @@ export default function Login() {
       await toast.promise(promise, {
         pending: {
           render() {
-            return "Signing in...";
+            return "Mencoba login...";
           },
           pauseOnHover: false,
           theme: "dark",
@@ -136,7 +136,7 @@ export default function Login() {
             // document.cookie = res.data.cookies[0];
             window.localStorage.setItem("token", res.data.token);
             window.location.href = "/";
-            return "Login successful";
+            return "Login berhasil. Mengalihkan ke halaman utama...";
           },
           type: "success",
           pauseOnHover: false,
@@ -147,7 +147,7 @@ export default function Login() {
         error: {
           render(opt) {
             const { data } = opt as any;
-            return `Login failed: ${data.message}`;
+            return `Login gagal: ${data.message}`;
           },
           type: "error",
           pauseOnHover: false,

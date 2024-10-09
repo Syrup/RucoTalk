@@ -1,9 +1,8 @@
-import { ActionFunctionArgs, json, LoaderFunctionArgs } from "@remix-run/node";
-import { threads } from "db/schema/threads";
+import { ActionFunctionArgs, json } from "@remix-run/node";
 import { DB } from "~/.server/db.server";
+import { mail } from "~/.server/utils";
 
 export async function action({ request }: ActionFunctionArgs) {
-  const db = new DB();
   switch (request.method) {
     case "POST":
       const db = new DB();
@@ -12,6 +11,8 @@ export async function action({ request }: ActionFunctionArgs) {
       const content = formData.get("content") as string;
       const authorId = formData.get("authorId") as string;
       const authorName = formData.get("authorName") as string;
+      const thread = await db.getThread({ id });
+      const user = await db.getUser({ id: thread?.authorId });
 
       if (!id || !content) {
         return json(
@@ -32,9 +33,19 @@ export async function action({ request }: ActionFunctionArgs) {
       };
 
       await db.addComment({ id, data: comment });
-      console.log(formData);
 
-      // return redirect(`/threads/${id}`);
+      console.log(user?.email, authorName, thread?.title);
+
+      mail.sendMail({
+        from: '"PIK R" <pik.r@sxrup.xyz>',
+        to: user?.email!,
+        subject: `${authorName} berkomentar di thread ${thread?.title}`,
+        html: `<p><pre>${authorName}</pre> berkomentar di thread <pre>${thread?.title}</pre></p>
+        <blockquote>"${content}"</blockquote>
+        <a href="https://ruco-talk.vercel.app/threads/${id}">Lihat thread</a>
+        `,
+      });
+
       return json(
         {
           status: "success",

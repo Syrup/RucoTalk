@@ -1,4 +1,4 @@
-import { neon, neonConfig, Pool } from "@neondatabase/serverless";
+import { neonConfig, Pool } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-serverless";
 import ws from "ws";
 import { tokens, users } from "db";
@@ -106,7 +106,7 @@ class DB extends EventEmitter {
         .where(eq(users.email, email));
 
       if (user.length === 0) {
-        throw new DBError("User not found");
+        return null;
       }
 
       return user[0] as User;
@@ -160,7 +160,7 @@ class DB extends EventEmitter {
   }) {
     const user = await this.getUser({ username });
     if (!user) return false;
-    console.log(user);
+
     return bcrypt.compare(password, user.password);
   }
 
@@ -173,8 +173,6 @@ class DB extends EventEmitter {
   }) {
     const user = await this.getUser({ username: author.username! });
 
-    console.log(thread.attachments);
-
     if (!user) {
       throw new DBError("User not found");
     }
@@ -185,17 +183,34 @@ class DB extends EventEmitter {
     });
   }
 
-  async getThread(id: string) {
-    const thread = await this.db
-      .select()
-      .from(threads)
-      .where(eq(threads.id, id));
-
-    if (thread.length === 0) {
-      throw new DBError("Thread not found");
+  async getThread({ id, title }: { id?: string; title?: string }) {
+    if (!id && !title) {
+      throw new DBError("Id or title is required");
     }
 
-    return thread[0] as Thread;
+    if (id) {
+      const thread = await this.db
+        .select()
+        .from(threads)
+        .where(eq(threads.id, id));
+
+      if (thread.length === 0) {
+        throw new DBError("Thread not found");
+      }
+
+      return thread[0] as Thread;
+    } else if (title) {
+      const thread = await this.db
+        .select()
+        .from(threads)
+        .where(eq(threads.title, title));
+
+      if (thread.length === 0) {
+        throw new DBError("Thread not found");
+      }
+
+      return thread[0] as Thread;
+    }
   }
 
   async setUserStatus({
@@ -222,7 +237,7 @@ class DB extends EventEmitter {
     id: string;
     data: Omit<ThreadComment, "id" | "createdAt">;
   }) {
-    const thread = await this.getThread(id);
+    const thread = await this.getThread({ id });
     if (!id) {
       throw new DBError("Thread id is required");
     }
@@ -235,7 +250,7 @@ class DB extends EventEmitter {
       .update(threads)
       .set({
         comments: [
-          ...thread.comments,
+          ...thread!.comments,
           {
             ...data,
             id: v4(),

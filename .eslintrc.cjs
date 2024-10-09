@@ -19,7 +19,7 @@ module.exports = {
     commonjs: true,
     es6: true,
   },
-  ignorePatterns: ["!**/.server", "!**/.client", "!**/node_modules"],
+  ignorePatterns: ["!**/.server", "!**/.client", "!**/node_modules", "!build"],
 
   rules: {
     "no-console": ["error", { allow: ["warn", "error"] }],

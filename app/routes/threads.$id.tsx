@@ -1,12 +1,4 @@
-import {
-  json,
-  LoaderFunction,
-  LoaderFunctionArgs,
-  ActionFunctionArgs,
-  redirect,
-  TypedResponse,
-} from "@remix-run/node";
-import { v4 as uuidv4 } from "uuid";
+import { json, LoaderFunctionArgs, redirect } from "@remix-run/node";
 import { Form, useLoaderData } from "@remix-run/react";
 import React from "react";
 import { DB } from "~/.server/db.server";
@@ -20,6 +12,11 @@ import { LoginCookie } from "~/types";
 import { login } from "~/.server/cookies";
 import { toast } from "react-toastify";
 import { Badge } from "~/components/ui/badge";
+import {
+  Turnstile,
+  TurnstileServerValidationResponse,
+} from "@marsidev/react-turnstile";
+import { Session } from "~/.server/sessions";
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
   const cookieHeader = request.headers.get("Cookie");
@@ -28,6 +25,12 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     | {
         isLoggedIn: false;
       } = (await login.parse(cookieHeader)) ?? { isLoggedIn: false };
+  const { getSession } = await Session;
+  const session = await getSession(cookieHeader);
+  const token = session.get("token");
+  if (!token) {
+    return redirect("/login");
+  }
 
   const db = new DB();
   const id = params.id;
@@ -43,11 +46,24 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     );
   }
 
-  const thread = await db.getThread(id);
+  const thread = await db.getThread({ id });
+  const author = await db.getUser({ id: thread?.authorId });
+
+  if (cookie.isLoggedIn) {
+    if (
+      !(
+        cookie.user.id !== thread?.authorId ||
+        !cookie.user.roles?.includes("admin")
+      )
+    ) {
+      return redirect("/");
+    }
+  }
 
   return json({
     thread,
     cookie,
+    authorName: author?.username,
   });
 }
 
@@ -57,30 +73,69 @@ interface ThreadProps {
   content: string;
 }
 
-export default function Thread({ id, title, content }: ThreadProps) {
+export default function Thread() {
   const data = useLoaderData<typeof loader>();
 
   if ("status" in data) return <div>{data.message}</div>;
 
-  const { cookie, thread } = data;
+  const { cookie, thread, authorName } = data;
 
   const onComment = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
     formData.append("authorId", cookie.isLoggedIn ? cookie.user.id : "0");
-    formData.append("id", thread.id);
+    formData.append("id", thread!.id);
     formData.append(
       "authorName",
       cookie.isLoggedIn ? cookie.user.username! : "Unknown"
     );
+
+    const token = formData.get("cf-turnstile-response");
+
+    const res = await fetch("/auth/verify", {
+      method: "POST",
+      body: JSON.stringify({ token }),
+      headers: {
+        "content-type": "application/json",
+      },
+    });
+
+    const data = (await res.json()) as TurnstileServerValidationResponse;
+
+    if (!formData.get("content")) {
+      return toast.error("Isi komentar tidak boleh kosong", {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        pauseOnHover: false,
+        closeOnClick: true,
+        theme: "dark",
+        toastId: "emptyComment",
+      });
+    }
+
+    if (!data.success) {
+      return toast.error(
+        "Tolong selesaikan verifikasi bahwa anda bukan robot",
+        {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          pauseOnHover: false,
+          closeOnClick: true,
+          theme: "dark",
+          toastId: "verifyFailed",
+        }
+      );
+    }
 
     const promise = new Promise<{
       status: "success" | "error";
       code: number;
       message: string;
     }>(async (resolve, reject) => {
-      const res = await fetch(`/api/threads/${thread.id}/comments`, {
+      const res = await fetch(`/api/threads/${thread?.id}/comments`, {
         method: "POST",
         body: formData,
       });
@@ -96,7 +151,6 @@ export default function Thread({ id, title, content }: ThreadProps) {
         return err;
       });
 
-      console.log("Data: ", data);
       resolve(data);
       if (data.code === 400) {
         reject(data);
@@ -109,7 +163,7 @@ export default function Thread({ id, title, content }: ThreadProps) {
     await toast.promise(promise, {
       pending: {
         render() {
-          return "Posting comment...";
+          return "Memposting komentar...";
         },
         pauseOnHover: false,
         theme: "dark",
@@ -118,7 +172,7 @@ export default function Thread({ id, title, content }: ThreadProps) {
       success: {
         render(res) {
           window.location.reload();
-          return "Comment added successfully";
+          return "Komentar berhasil ditambahkan";
         },
         type: "success",
         pauseOnHover: false,
@@ -129,7 +183,7 @@ export default function Thread({ id, title, content }: ThreadProps) {
       error: {
         render(opt) {
           const { data } = opt as any;
-          return `Comment failed: ${data.message}`;
+          return `Komentar gagal: ${data.message}`;
         },
         type: "error",
         pauseOnHover: false,
@@ -142,21 +196,27 @@ export default function Thread({ id, title, content }: ThreadProps) {
 
   return (
     <div>
-      <h1 className="font-koulen m-4 text-4xl ">{thread.title}</h1>
+      <h1 className="font-koulen m-4 text-4xl">{thread?.title}</h1>
       <div className="p-2">
         <div className="border-2 border-muted border-solid rounded-md p-4 m-auto">
+          <p>
+            Dari:{" "}
+            <span className="font-semibold">{authorName ?? "Unknown"} </span>
+          </p>
           <label htmlFor="pesan">Pesan: </label>
 
-          <ReactMarkdown>{thread.content}</ReactMarkdown>
+          <ReactMarkdown>{thread?.content}</ReactMarkdown>
           <br />
 
           {/* here is attachments */}
-          {thread.attachments.length === 0 ? <span>No attachments</span> : null}
-          {thread.attachments.length > 0 ? (
+          {thread!.attachments.length === 0 ? (
+            <span>Tidak ada lampiran</span>
+          ) : null}
+          {thread!.attachments.length > 0 ? (
             <>
-              <span>Attachments:</span>
+              <span>Lampiran:</span>
               <div className="flex flex-wrap gap-4">
-                {thread.attachments.map((attachment) => {
+                {thread?.attachments.map((attachment) => {
                   if (attachment.type === "image/png") {
                     const url = new URL(location.origin + attachment.url);
 
@@ -207,12 +267,12 @@ export default function Thread({ id, title, content }: ThreadProps) {
         <Separator className="my-4" />
       </div>
       <div className="m-4 mt-6">
-        <h2 className="text-2xl font-semibold">Comments</h2>
-        {thread.comments.length === 0 ? (
-          <p>No comments yet.</p>
+        <h2 className="text-2xl font-semibold">Komentar</h2>
+        {thread!.comments.length === 0 ? (
+          <p>Belum ada komentar.</p>
         ) : (
           <ul className="my-4">
-            {thread.comments.map((comment) => (
+            {thread!.comments.map((comment) => (
               <>
                 <li key={comment.id} className="pb-4">
                   <div className="flex items-center space-x-2">
@@ -234,13 +294,13 @@ export default function Thread({ id, title, content }: ThreadProps) {
                   </div>
                   <p>{comment.content}</p>
                 </li>
-                <Separator className="w-2/6" />
+                <Separator className="sm:w-2/6 w-4/6 mb-3" />
               </>
             ))}
           </ul>
         )}
       </div>
-      <div className="mt-6 max-w-[29%] m-2">
+      <div className="mt-6 m-2">
         <Form
           className="flex flex-col space-y-4"
           method="POST"
@@ -248,17 +308,23 @@ export default function Thread({ id, title, content }: ThreadProps) {
           encType="application/x-www-form-urlencoded"
         >
           <Textarea
-            placeholder="Leave a comment"
+            placeholder="Tinggalkan komentar"
             name="content"
-            className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full sm:max-w-[29%] p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
             rows={4}
+          />
+          <Turnstile
+            siteKey="0x4AAAAAAAvV9Dwxni70xFRs"
+            options={{
+              language: "id",
+            }}
           />
           <Button
             type="submit"
             className="self-start px-4 py-2 text-white bg-primary rounded-md hover:bg-primary-dark"
             disabled={!cookie.isLoggedIn}
           >
-            Comment
+            Kirim Komentar
           </Button>
         </Form>
       </div>
