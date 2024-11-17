@@ -1,7 +1,7 @@
 import { json, LoaderFunctionArgs, redirect } from "@remix-run/node";
 import { Form, useLoaderData } from "@remix-run/react";
 import React from "react";
-import { DB } from "~/.server/db.server";
+import { DB } from "~/lib/.server/db.server";
 import { Textarea } from "~/components/ui/textarea";
 import type { Thread } from "~/types/Thread";
 import ReactMarkdown from "react-markdown";
@@ -9,14 +9,14 @@ import { getFileTypeIcon } from "~/lib/getFIleTypeIcon";
 import { Button } from "~/components/ui/button";
 import { Separator } from "~/components/ui/separator";
 import { LoginCookie } from "~/types";
-import { login } from "~/.server/cookies";
+import { login } from "~/lib/.server/cookies";
 import { toast } from "react-toastify";
 import { Badge } from "~/components/ui/badge";
 import {
   Turnstile,
   TurnstileServerValidationResponse,
 } from "@marsidev/react-turnstile";
-import { Session } from "~/.server/sessions";
+import { Session } from "~/lib/.server/sessions";
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
   const cookieHeader = request.headers.get("Cookie");

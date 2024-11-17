@@ -12,6 +12,7 @@ import { Button } from "./button";
 import { SheetTrigger, SheetContent, Sheet } from "./sheet";
 import { LoginCookie } from "~/types";
 import { SerializeFrom } from "@remix-run/node";
+import { Models } from "appwrite";
 
 type SerializeLoginCookie = SerializeFrom<LoginCookie>;
 
@@ -22,9 +23,8 @@ function NavLinks({
 }: {
   active: string;
   device: "mobile" | "desktop";
-  user: SerializeLoginCookie | null;
+  user: Models.User<Models.Preferences> | null;
 }) {
-
   if (device === "mobile") {
     return (
       <nav className="grid gap-6 text-lg font-medium">
@@ -43,8 +43,8 @@ function NavLinks({
         >
           Home
         </Link>
-        {user?.isLoggedIn ? (
-          user.user.roles?.includes("admin") ? (
+        {!!user ? (
+          user.labels?.includes("admin") ? (
             <Link
               to="/dashboard"
               className={`${
@@ -96,8 +96,8 @@ function NavLinks({
         >
           Home
         </Link>
-        {user?.isLoggedIn ? (
-          user.user.roles?.includes("admin") ? (
+        {!!user ? (
+          user.labels?.includes("admin") ? (
             <Link
               to="/dashboard"
               className={`${
@@ -137,7 +137,7 @@ function NavLinks({
 export default function Navbar({
   user,
 }: {
-  user: SerializeLoginCookie | null;
+  user: Models.User<Models.Preferences> | null;
 }) {
   const location = useLocation();
   const active = location.pathname.split("/").slice(1).join("/");
@@ -172,11 +172,9 @@ export default function Navbar({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            {user !== null && user.isLoggedIn ? (
+            {user !== null && !!user ? (
               <>
-                <DropdownMenuLabel>
-                  Welcome, {user.user.username}
-                </DropdownMenuLabel>
+                <DropdownMenuLabel>Welcome, {user.name}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={() => {

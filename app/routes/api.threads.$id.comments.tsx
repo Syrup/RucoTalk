@@ -1,6 +1,6 @@
 import { ActionFunctionArgs, json } from "@remix-run/node";
-import { DB } from "~/.server/db.server";
-import { mail } from "~/.server/utils";
+import { DB } from "~/lib/.server/db.server";
+import { mail } from "~/lib/.server/utils";
 
 export async function action({ request }: ActionFunctionArgs) {
   switch (request.method) {

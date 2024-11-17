@@ -7,6 +7,15 @@ export const login = createCookie("__login", {
   maxAge: oneweek,
 });
 
+export function createLoginCookie(secret: string, maxAge: number) {
+  const login = createCookie("__login", {
+    secrets: [process.env.LOGIN_SECRET!], // haha
+    maxAge: maxAge,
+  });
+
+  return login;
+}
+
 const sesionExpires = new Date();
 sesionExpires.setSeconds(sesionExpires.getSeconds() + oneweek);
 

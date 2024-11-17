@@ -1,9 +1,9 @@
 import { ActionFunctionArgs, json } from "@remix-run/node";
 import { v4 } from "uuid";
-import { DB } from "~/.server/db.server";
+import { DB } from "~/lib/.server/db.server";
 import { LoginCookie } from "~/types";
 import { Attachment } from "~/types/Thread";
-import { login } from "~/.server/cookies";
+import { login } from "~/lib/.server/cookies";
 import * as fs from "fs";
 
 export async function action({ request }: ActionFunctionArgs) {

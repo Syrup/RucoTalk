@@ -1,5 +1,9 @@
 import crypto from "crypto";
-import { Cookie, createSessionStorage } from "@remix-run/node";
+import {
+  Cookie,
+  createCookieSessionStorage,
+  createSessionStorage,
+} from "@remix-run/node";
 import { sessionCookie } from "./cookies";
 import { client } from "./redis";
 
@@ -32,6 +36,15 @@ async function createDatabaseSessionStorage({ cookie }: { cookie: Cookie }) {
   });
 }
 
-export const Session = createDatabaseSessionStorage({
-  cookie: sessionCookie,
-});
+// export const Session = createDatabaseSessionStorage({
+//   cookie: sessionCookie,
+// });
+
+export const { commitSession, destroySession, getSession } =
+  createCookieSessionStorage({
+    cookie: {
+      secrets: ["secret"],
+      name: "__session",
+      sameSite: "lax",
+    },
+  });

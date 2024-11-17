@@ -1,92 +1,138 @@
-import { json, type ActionFunctionArgs } from "@remix-run/node";
+import { createCookie, json, type ActionFunctionArgs } from "@remix-run/node";
 import { jwtDecode } from "jwt-decode";
-import { DB } from "~/.server/db.server";
-import { login as loginCookie } from "~/.server/cookies";
+import { DB } from "~/lib/.server/db.server";
+import { createLoginCookie } from "~/lib/.server/cookies";
 import { v4 as uuidv4 } from "uuid";
-import { Session } from "~/.server/sessions";
-import { generateTokens } from "~/.server/utils";
+import { commitSession, getSession } from "~/lib/.server/sessions";
+import { generateTokens } from "~/lib/.server/utils";
+import { Account } from "node-appwrite";
+import { adminClient } from "~/lib/.server/appwrite";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   switch (request.method) {
     case "POST": {
+      const { login, password } = await request.json();
       const cookieHeader = request.headers.get("Cookie");
-      const cookie = (await loginCookie.parse(cookieHeader)) ?? {
-        isLoggedIn: false,
-      };
-      const { getSession, commitSession, destroySession } = await Session;
-      const session = await getSession(cookieHeader);
+      const account = new Account(adminClient);
       const headers = new Headers();
-      const data = await request.json();
-      const { login, password } = data;
-      const db = new DB();
 
       try {
-        let isEmail = /\S+@\S+\.\S+/.test(login);
-        let user = isEmail
-          ? await db.getUser({ email: login })
-          : await db.getUser({ username: login });
+        const session = await account.createEmailPasswordSession(
+          login,
+          password
+        );
+        const cookie = await getSession(cookieHeader);
 
-        if (!user) {
-          return json(
-            {
-              status: "error",
-              code: 401,
-              message: "Account not found",
-            },
-            401
-          );
-        }
+        cookie.set("secret", session.secret);
 
-        if (
-          !(await db.verifyPassword({ username: user.username!, password }))
-        ) {
-          return json(
-            {
-              status: "error",
-              code: 401,
-              message: "Invalid password",
-            },
-            401
-          );
-        }
+        console.log(session);
 
-        cookie.isLoggedIn = true;
-        const { accessToken, refreshToken } = generateTokens(user, uuidv4());
-
-        session.set("token", accessToken);
-
-        cookie.user = user;
-        cookie.expired = jwtDecode(accessToken).exp;
-
-        headers.append("Set-Cookie", await loginCookie.serialize(cookie));
         headers.append(
           "Set-Cookie",
-          await commitSession(session, {
-            expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // 7 days from now
+          await commitSession(cookie, {
+            expires: new Date(session.expire),
           })
         );
-
         return json(
           {
             status: "success",
             code: 200,
             message: "Login success",
-            data: user,
-            token: accessToken,
-            refreshToken,
+            data: session,
           },
           {
             status: 200,
             headers,
           }
         );
-      } catch (err) {
-        console.error(err);
+      } catch (error) {
+        console.error(error);
         return json(
-          { status: "error", code: 500, message: (err as Error).message },
+          { status: "error", code: 500, message: (error as Error).message },
           500
         );
       }
+
+      //#region OLD
+      // const cookieHeader = request.headers.get("Cookie");
+      // const cookie = (await loginCookie.parse(cookieHeader)) ?? {
+      //   isLoggedIn: false,
+      // };
+      // const { getSession, commitSession, destroySession } = await Session;
+      // const session = await getSession(cookieHeader);
+      // const headers = new Headers();
+      // const data = await request.json();
+      // const { login, password } = data;
+      // const db = new DB();
+
+      // try {
+      //   let isEmail = /\S+@\S+\.\S+/.test(login);
+      //   let user = isEmail
+      //     ? await db.getUser({ email: login })
+      //     : await db.getUser({ username: login });
+
+      //   if (!user) {
+      //     return json(
+      //       {
+      //         status: "error",
+      //         code: 401,
+      //         message: "Account not found",
+      //       },
+      //       401
+      //     );
+      //   }
+
+      //   if (
+      //     !(await db.verifyPassword({ username: user.username!, password }))
+      //   ) {
+      //     return json(
+      //       {
+      //         status: "error",
+      //         code: 401,
+      //         message: "Invalid password",
+      //       },
+      //       401
+      //     );
+      //   }
+
+      //   cookie.isLoggedIn = true;
+      //   const { accessToken, refreshToken } = generateTokens(user, uuidv4());
+
+      //   session.set("token", accessToken);
+
+      //   cookie.user = user;
+      //   cookie.expired = jwtDecode(accessToken).exp;
+
+      //   headers.append("Set-Cookie", await loginCookie.serialize(cookie));
+      //   headers.append(
+      //     "Set-Cookie",
+      //     await commitSession(session, {
+      //       expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // 7 days from now
+      //     })
+      //   );
+
+      //   return json(
+      //     {
+      //       status: "success",
+      //       code: 200,
+      //       message: "Login success",
+      //       data: user,
+      //       token: accessToken,
+      //       refreshToken,
+      //     },
+      //     {
+      //       status: 200,
+      //       headers,
+      //     }
+      //   );
+      // } catch (err) {
+      //   console.error(err);
+      //   return json(
+      //     { status: "error", code: 500, message: (err as Error).message },
+      //     500
+      //   );
+      // }
+      //#endregion
 
       //#region REMOVED
       // try {

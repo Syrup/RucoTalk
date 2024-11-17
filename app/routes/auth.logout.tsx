@@ -3,18 +3,27 @@ import {
   LoaderFunctionArgs,
   redirect,
 } from "@remix-run/node";
-import { login } from "~/.server/cookies";
-import { Session } from "~/.server/sessions";
+import { Client } from "appwrite";
+import { Account } from "appwrite";
+import { adminClient } from "~/lib/.server/appwrite";
+import { login } from "~/lib/.server/cookies";
+import { destroySession, getSession } from "~/lib/.server/sessions";
+// import { Session } from "~/lib/.server/sessions";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const cookieHeader = request.headers.get("Cookie");
-  const cookie = (await login.parse(cookieHeader)) ?? {
-    isLoggedIn: false,
-  };
   const headers = new Headers();
 
-  const { getSession, commitSession, destroySession } = await Session;
   const session = await getSession(cookieHeader);
+
+  const sessionClient = new Client();
+  sessionClient
+    .setProject("67176ba8001fcd33e841")
+    .setSession(await session.get("secret"));
+
+  const account = new Account(sessionClient);
+
+  await account.deleteSession("current");
 
   await destroySession(session);
 

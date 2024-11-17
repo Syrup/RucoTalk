@@ -30,10 +30,11 @@ import {
   LoaderFunctionArgs,
 } from "@remix-run/node";
 import Navbar from "~/components/ui/navbar";
-import { Session } from "./.server/sessions";
-import { login } from "./.server/cookies";
+// import { Session } from "./lib/.server/sessions";
+import { login } from "./lib/.server/cookies";
 import { LoginCookie } from "./types";
-import { client } from "./.server/redis";
+import { Account, Client } from "appwrite";
+import { getSession } from "./lib/.server/sessions";
 
 export const links: LinksFunction = () => [{ rel: "stylesheet", href: styles }];
 
@@ -62,22 +63,29 @@ library.add(
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const cookieHeader = request.headers.get("Cookie");
-  const cookie:
-    | LoginCookie
-    | {
-        isLoggedIn: false;
-      } = (await login.parse(cookieHeader)) ?? { isLoggedIn: false };
-  if (!cookie.isLoggedIn) {
+  const session = await getSession(cookieHeader);
+
+  try {
+    const sessionClient = new Client();
+
+    sessionClient
+      .setProject("67176ba8001fcd33e841")
+      .setSession(await session.get("secret"));
+
+    const account = new Account(sessionClient);
+
+    const user = await account.get();
+
     return {
-      cookie,
+      isLoggedIn: user ? true : false,
+      user,
+    };
+  } catch (error) {
+    return {
+      isLoggedIn: false,
+      user: null,
     };
   }
-
-  Object.assign(cookie, { isLoggedIn: isTokenExpired(cookie.token) });
-
-  return {
-    cookie,
-  };
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -85,14 +93,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const data = useLoaderData<typeof loader>();
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-    if (isTokenExpired(token)) {
-      localStorage.removeItem("token");
-      navigate("/login");
-    }
-  }, []);
+  // useEffect(() => {
+  //   const token = localStorage.getItem("token");
+  //   if (!token) return;
+  //   if (isTokenExpired(token)) {
+  //     localStorage.removeItem("token");
+  //     navigate("/login");
+  //   }
+  // }, []);
 
   return (
     <html lang="en">
@@ -103,7 +111,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
-        <Navbar user={data.cookie.isLoggedIn ? data.cookie : null} />
+        <Navbar user={data.isLoggedIn ? data.user : null} />
         <ToastContainer />
         {children}
         <ScrollRestoration />

@@ -1,25 +1,30 @@
 import { ActionFunctionArgs, json } from "@remix-run/node";
-import { DB } from "~/.server/db.server";
+import { Account, ID, Query, Users } from "node-appwrite";
+import { adminClient } from "~/lib/.server/appwrite";
 
 export async function action({ request }: ActionFunctionArgs) {
   switch (request.method) {
     case "POST": {
-      const db = new DB();
-      const { createUser, getUser } = db;
       const { username, email, password } = (await request.json()) as {
         username: string;
         email: string;
         password: string;
       };
+      const users = new Users(adminClient);
+      const account = new Account(adminClient);
 
       try {
-        const checkUser = await db.getUser({ email: email });
+        const checkUser = await users.list([Query.contains("email", email)]);
 
-        if (checkUser !== null) {
+        console.log(checkUser);
+
+        if (checkUser.total > 0) {
           throw new Error("Akun sudah ada.");
         }
 
-        await db.createUser({ username, email, password });
+        await account.create(ID.unique(), email, password, username);
+
+        // await db.createUser({ username, email, password });
 
         return json(
           {

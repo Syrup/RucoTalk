@@ -21,11 +21,14 @@ import {
 } from "~/components/ui/table";
 import { LoaderFunctionArgs } from "@remix-run/node";
 import { Thread } from "~/types/Thread";
-import { DB } from "~/.server/db.server";
+import { DB } from "~/lib/.server/db.server";
 import { LoginCookie, User } from "~/types";
 import { redirect } from "@remix-run/node";
-import { Session } from "~/.server/sessions";
-import { login } from "~/.server/cookies";
+// import { Session } from "~/lib/.server/sessions";
+import { login } from "~/lib/.server/cookies";
+import { getSession } from "~/lib/.server/sessions";
+import { Account, Users as AppUsers, Query } from "node-appwrite";
+import { adminClient } from "~/lib/.server/appwrite";
 
 type ThreadWithAuthor = Thread & { author: User };
 
@@ -38,9 +41,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
       } = (await login.parse(cookieHeader)) ?? {
     isLoggedIn: false,
   };
-  const { getSession } = await Session;
-  const session = await getSession(request.headers.get("Cookie"));
-  const token = session.get("token");
+  // const { getSession } = await Session;
+  const session = await getSession(cookieHeader);
+  const token = session.get("secret");
   if (!token) {
     return redirect("/login");
   }
@@ -51,13 +54,16 @@ export async function loader({ request }: LoaderFunctionArgs) {
       Authorization: `Bearer ${process.env.REFRESH_SECRET}`,
     },
   }).then((res) => res.json())) as ThreadWithAuthor[];
+  const account = new Account(adminClient);
+  const isLoggedIn = (await account.get()) ? true : false;
+  const user = await account.get();
 
   const db = new DB();
-  const users = await db.getUsers();
-  const admins = users.filter((user) => user.roles?.includes("admin"));
+  const users = new AppUsers(adminClient);
+  const admins = (await users.list([Query.contains("labels", "admin")])).users;
 
-  if (cookie.isLoggedIn) {
-    if (!cookie.user.roles?.includes("admin")) {
+  if (isLoggedIn) {
+    if (!user.labels.includes("admin")) {
       return redirect("/");
     }
   }
@@ -71,12 +77,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
     })
   );
 
+  const usersTotal = (await users.list()).total;
+
   return json(
     {
       threads,
-      cookie: cookie,
+      user,
       admins,
-      usersTotal: users.length,
+      usersTotal,
     },
     200
   );
@@ -92,8 +100,7 @@ function getAvatarFallback(username: string | null) {
 }
 
 export default function Dashboard() {
-  const { threads, cookie, admins, usersTotal } =
-    useLoaderData<typeof loader>();
+  const { threads, user, admins, usersTotal } = useLoaderData<typeof loader>();
 
   return (
     <div className="flex flex-col w-full min-h-screen">
@@ -187,16 +194,16 @@ export default function Dashboard() {
               ) : (
                 admins.map((admin) => {
                   return (
-                    <div key={admin.id} className="flex items-center gap-4">
+                    <div key={admin["$id"]} className="flex items-center gap-4">
                       <Avatar className="hidden h-9 w-9 sm:flex">
                         <AvatarImage src="" alt="Avatar" />
                         <AvatarFallback>
-                          {getAvatarFallback(admin.username)}
+                          {getAvatarFallback(admin.name)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="grid gap-1">
                         <p className="text-sm font-medium leading-none">
-                          {admin.username}
+                          {admin.name}
                         </p>
                         <p className="text-sm text-muted-foreground">
                           {admin.email}

@@ -5,7 +5,7 @@
  */
 
 import { PassThrough } from "node:stream";
-import { DB } from "~/.server/db.server";
+import { DB } from "~/lib/.server/db.server";
 
 import type { AppLoadContext, EntryContext } from "@remix-run/node";
 import { createReadableStreamFromReadable } from "@remix-run/node";
@@ -14,31 +14,31 @@ import { isbot } from "isbot";
 import { renderToPipeableStream } from "react-dom/server";
 
 const ABORT_DELAY = 5_000;
-const db = new DB();
+// const db = new DB();
 
-process.on("SIGINT", async () => {
-  console.log("Received SIGINT. Closing db connection.");
-  await db.close();
-  process.exit(0);
-});
+// process.on("SIGINT", async () => {
+//   console.log("Received SIGINT. Closing db connection.");
+//   await db.close();
+//   process.exit(0);
+// });
 
-process.on("SIGTERM", async () => {
-  console.log("Received SIGTERM. Closing db connection.");
-  await db.close();
-  process.exit(0);
-});
+// process.on("SIGTERM", async () => {
+//   console.log("Received SIGTERM. Closing db connection.");
+//   await db.close();
+//   process.exit(0);
+// });
 
-process.on("uncaughtException", async (err) => {
-  console.error(err);
-  await db.close();
-  process.exit(1);
-});
+// process.on("uncaughtException", async (err) => {
+//   console.error(err);
+//   await db.close();
+//   process.exit(1);
+// });
 
-process.on("unhandledRejection", async (err) => {
-  console.error(err);
-  await db.close();
-  process.exit(1);
-});
+// process.on("unhandledRejection", async (err) => {
+//   console.error(err);
+//   await db.close();
+//   process.exit(1);
+// });
 
 export default function handleRequest(
   request: Request,

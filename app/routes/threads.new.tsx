@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { getFileTypeIcon } from "~/lib/getFIleTypeIcon.tsx";
+import { getFileTypeIcon } from "~/lib/getFIleTypeIcon";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { X } from "lucide-react";
@@ -7,7 +7,7 @@ import { Badge } from "~/components/ui/badge";
 import { LoaderFunctionArgs, redirect } from "@remix-run/node";
 import { Form } from "@remix-run/react";
 import FancyArea from "~/components/fancy-area";
-import { Session } from "~/.server/sessions";
+import { Session } from "~/lib/.server/sessions";
 import { toast } from "react-toastify";
 import {
   Turnstile,

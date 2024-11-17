@@ -12,7 +12,7 @@ import {
   Turnstile,
   TurnstileServerValidationResponse,
 } from "@marsidev/react-turnstile";
-import { Session } from "~/.server/sessions";
+import { getSession } from "~/lib/.server/sessions";
 
 export const meta: MetaFunction = () => {
   return [
@@ -22,12 +22,11 @@ export const meta: MetaFunction = () => {
 };
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const { getSession } = await Session;
-  const session = await getSession(request.headers.get("Cookie"));
-  const token = session.get("token");
-  if (token) {
-    return redirect("/");
-  }
+  // const session = await getSession(request.headers.get("Cookie"));
+  // const token = session.get("token");
+  // if (token) {
+  //   return redirect("/");
+  // }
 
   return {};
 }

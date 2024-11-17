@@ -7,7 +7,7 @@ import { useState, useRef } from "react";
 import { toast } from "react-toastify";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
-import { Session } from "~/.server/sessions";
+// import { Session } from "~/lib/.server/sessions";
 import {
   Turnstile,
   TurnstileServerValidationResponse,
@@ -21,12 +21,12 @@ export const meta: MetaFunction = () => {
 };
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const { getSession } = await Session;
-  const session = await getSession(request.headers.get("Cookie"));
-  const token = session.get("token");
-  if (token) {
-    return redirect("/");
-  }
+  // const { getSession } = await Session;
+  // const session = await getSession(request.headers.get("Cookie"));
+  // const token = session.get("token");
+  // if (token) {
+  //   return redirect("/");
+  // }
 
   return {};
 }
